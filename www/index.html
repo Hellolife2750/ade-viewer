@@ -1,0 +1,94 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+    <meta http-equiv="Content-Security-Policy"
+      content="default-src 'self' data: gap: https://ssl.gstatic.com;
+               style-src 'self' 'unsafe-inline';
+               media-src *;
+               img-src 'self' data: content:;
+               connect-src 'self' https://adeapp.bordeaux-inp.fr http://localhost:3000;">
+
+    <title>ADE Viewer</title>
+    <link rel="stylesheet" href="css/index.css" />
+</head>
+
+<body>
+    <div id="app">
+        <header>
+            <img class="header-logo" src="res/img/icon.svg" alt="ADE logo">
+            <div class="menu-buttons">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><path fill="#ffffff" d="M298.2 72.6C310.5 61.2 329.5 61.2 341.7 72.6L432 156.3L432 144C432 126.3 446.3 112 464 112L496 112C513.7 112 528 126.3 528 144L528 245.5L565.8 280.6C575.4 289.6 578.6 303.5 573.8 315.7C569 327.9 557.2 336 544 336L528 336L528 512C528 547.3 499.3 576 464 576L176 576C140.7 576 112 547.3 112 512L112 336L96 336C82.8 336 71 327.9 66.2 315.7C61.4 303.5 64.6 289.5 74.2 280.6L298.2 72.6zM304 384C277.5 384 256 405.5 256 432L256 528L384 528L384 432C384 405.5 362.5 384 336 384L304 384z"/></svg>
+            </div>
+        </header>
+
+        <main>
+            <div id="next-events-container">
+                <svg class="open-week-btn" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><!--!Font Awesome Free v7.0.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.--><path fill="#b3b4b7" d="M480 96C515.3 96 544 124.7 544 160L544 480C544 515.3 515.3 544 480 544L160 544C124.7 544 96 515.3 96 480L96 160C96 124.7 124.7 96 160 96L480 96zM264 224C254.3 224 245.5 229.8 241.8 238.8C238.1 247.8 240.1 258.1 247 265L282 300L215 367C205.6 376.4 205.6 391.6 215 400.9L239 424.9C248.4 434.3 263.6 434.3 272.9 424.9L339.9 357.9L374.9 392.9C381.8 399.8 392.1 401.8 401.1 398.1C410.1 394.4 416 385.7 416 376L416 248C416 234.7 405.3 224 392 224L264 224z"/></svg>
+
+                <div id="next-events">
+                    <p class="next-events-title">3 prochains cours</p>
+
+                    <div class="day-events">
+                        <p>lun. 4 mars</p>
+                        <div class="event">
+                            <div class="times">
+                                <p>15h00</p>
+                                <p>16h00</p>
+                            </div>
+                            <div class="details">
+                                <div class="seperator"></div>
+                                <div class="details-text">
+                                    <p class="title">Algorithmique et programmation</p>
+                                    <p class="location">Salle 101</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="day-events">
+                        <p>mar. 5 mars</p>
+                        <div class="event">
+                            <div class="times">
+                                <p>8h00</p>
+                                <p>12h00</p>
+                            </div>
+                            <div class="details">
+                                <div class="seperator"></div>
+                                <div class="details-text">
+                                    <p class="title">Communication</p>
+                                    <p class="location">Salle 1</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="event">
+                            <div class="times">
+                                <p>15h00</p>
+                                <p>18h00</p>
+                            </div>
+                            <div class="details">
+                                <div class="seperator"></div>
+                                <div class="details-text">
+                                    <p class="title">Com visuelle</p>
+                                    <p class="location">Salle 101</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Mis à jour il y a 1h</p>
+        </footer>
+
+    </div>
+
+    <script src="cordova.js"></script>
+    <script src="js/index.js"></script>
+</body>
+
+</html>
