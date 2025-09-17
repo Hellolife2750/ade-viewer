@@ -1,14 +1,28 @@
 document.addEventListener('deviceready', onDeviceReady, false);
 
-const ICS_URL = "https://adeapp.bordeaux-inp.fr/jsp/custom/modules/plannings/anonymous_cal.jsp?resources=3972&projectId=1&calType=ical&firstDate=2025-08-18&lastDate=2026-08-23&displayConfigId=71";
-//const ICS_URL = "http://localhost:3000/ics"; // ton ICS
+//const ICS_URL = "https://adeapp.bordeaux-inp.fr/jsp/custom/modules/plannings/anonymous_cal.jsp?resources=3972&projectId=1&calType=ical&firstDate=2025-08-18&lastDate=2026-08-23&displayConfigId=71";
+const ICS_URL = "http://localhost:3000/ics"; // ton ICS
 
 let eventsCache = [];
+
+function toggleView(showId, hideId) {
+    document.getElementById(showId).style.display = "block";
+    document.getElementById(hideId).style.display = "none";
+}
 
 function onDeviceReady() {
     console.log("deviceready");
     setupUI();
     loadICS().then(() => renderNextCourses());
+
+
+    document.getElementById("toggle-week-view").addEventListener("click", () => {
+        toggleView("week-view", "home-view");
+    });
+
+    document.getElementById("toggle-home-view").addEventListener("click", () => {
+        toggleView("home-view", "week-view");
+    });
 }
 
 // écoute le bouton refresh
