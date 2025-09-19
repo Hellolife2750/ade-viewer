@@ -13,7 +13,9 @@
     <allow-intent href="https://adeapp.bordeaux-inp.fr/*" />
 
     <platform name="android">
-        <splash src="resources/android/splash/drawable-port-xxxhdpi-screen.png" density="port-xxxhdpi" />
+        <preference name="AndroidWindowSplashScreenAnimatedIcon" value="resources/android/splash/drawable-port-xxxhdpi-screen.png" />
+        <preference name="AndroidWindowSplashScreenBackground" value="#fff" />
+
         <!-- icones -->
         <icon src="resources/android/icon/drawable-xxxhdpi-icon.png" density="xxxhdpi"/>
         <icon src="resources/android/icon/drawable-xxhdpi-icon.png" density="xxhdpi"/>

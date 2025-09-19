@@ -1,6 +1,6 @@
 document.addEventListener('deviceready', onDeviceReady, false);
 
-//const ICS_URL = "https://adeapp.bordeaux-inp.fr/jsp/custom/modules/plannings/anonymous_cal.jsp?resources=3972&projectId=1&calType=ical&firstDate=2025-08-18&lastDate=2026-08-23&displayConfigId=71";
+// const ICS_URL = "https://adeapp.bordeaux-inp.fr/jsp/custom/modules/plannings/anonymous_cal.jsp?resources=3972&projectId=1&calType=ical&firstDate=2025-08-18&lastDate=2026-08-23&displayConfigId=71";
 const ICS_URL = "http://localhost:3000/ics"; // ton ICS
 
 let eventsCache = [];
@@ -18,10 +18,23 @@ function onDeviceReady() {
 
     document.getElementById("toggle-week-view").addEventListener("click", () => {
         toggleView("week-view", "home-view");
+
+        if (eventDays.length > 0) {
+            const idx = findNextEventDayIndex();
+            renderDayView(idx);
+        }
     });
 
     document.getElementById("toggle-home-view").addEventListener("click", () => {
         toggleView("home-view", "week-view");
+    });
+
+    document.getElementById("change-address-btn").addEventListener("click", function () {
+        document.getElementById("change-address-modal").style.display = "flex";
+    });
+
+    document.getElementById("close-address-modal-btn").addEventListener("click", function () {
+        document.getElementById("change-address-modal").style.display = "none";
     });
 }
 
@@ -131,16 +144,16 @@ function parseICS(icsText) {
 }
 
 // charge et parse ICS
-async function loadICS() {
-    try {
-        const icsText = await fetchICS();
-        eventsCache = parseICS(icsText);
-        eventsCache.sort((a, b) => a.start - b.start); // tri par date
-        console.log("Events chargés:", eventsCache);
-    } catch (err) {
-        console.error("Erreur ICS:", err);
-    }
-}
+// async function loadICS() {
+//     try {
+//         const icsText = await fetchICS();
+//         eventsCache = parseICS(icsText);
+//         eventsCache.sort((a, b) => a.start - b.start); // tri par date
+//         console.log("Events chargés:", eventsCache);
+//     } catch (err) {
+//         console.error("Erreur ICS:", err);
+//     }
+// }
 
 // Palette : 12 couleurs distinctes en HSL (360° / 12 = 30° entre chaque)
 function stringToColor(str) {
@@ -154,6 +167,12 @@ function stringToColor(str) {
     return `hsl(${hue}, 70%, 50%)`;
 }
 
+// formate une date en "14h30"
+function formatHeure(date) {
+    return date
+        .toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
+        .replace(":", "h");
+}
 
 // affiche les 3 prochains cours
 function renderNextCourses() {
@@ -181,12 +200,14 @@ function renderNextCourses() {
             currentDay = dayLabel;
             dayContainer = document.createElement("div");
             dayContainer.className = "day-events";
-            dayContainer.innerHTML = `<p>${dayLabel}</p>`;
+            dayContainer.innerHTML = `<p class="day-title">${dayLabel}</p>`;
             container.appendChild(dayContainer);
         }
 
-        const startTime = event.start.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-        const endTime = event.end.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+        // const startTime = event.start.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+        // const endTime = event.end.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+        const startTime = formatHeure(event.start);
+        const endTime = formatHeure(event.end);
 
         const color = stringToColor(event.title);
 
@@ -212,4 +233,135 @@ function renderNextCourses() {
     if (upcoming.length === 0) {
         container.innerHTML += `<p>Aucun cours à venir</p>`;
     }
+}
+
+// Mes grands morts, gestion de la vue "week-view"
+let eventDays = []; // liste des jours (Date sans heure)
+let currentDayIndex = 0;
+
+// utilitaire pour normaliser une date à minuit
+function normalizeDate(d) {
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+// construit la liste des jours uniques avec événements
+function buildEventDays() {
+    const dayMap = new Map();
+    for (let e of eventsCache) {
+        const day = normalizeDate(e.start).getTime();
+        if (!dayMap.has(day)) {
+            dayMap.set(day, normalizeDate(e.start));
+        }
+    }
+    // tri croissant
+    eventDays = Array.from(dayMap.values()).sort((a, b) => a - b);
+    console.log("Jours avec événements:", eventDays);
+}
+
+// affiche les événements du jour courant
+function renderDayView(index) {
+    if (eventDays.length === 0) return;
+    if (index < 0 || index >= eventDays.length) return;
+
+    currentDayIndex = index;
+    const day = eventDays[currentDayIndex];
+
+    // maj du header
+    const navLabel = document.querySelector("#week-view .navigator-bar p");
+    navLabel.textContent = day.toLocaleDateString("fr-FR", {
+        weekday: "short",
+        day: "numeric",
+        month: "long"
+    });
+
+    // événements de ce jour
+    const container = document.getElementById("week-events-container");
+    container.innerHTML = "";
+
+    const events = eventsCache.filter(e =>
+        normalizeDate(e.start).getTime() === day.getTime()
+    );
+
+    for (let ev of events) {
+        const startTime = formatHeure(ev.start);
+
+        const endTime = formatHeure(ev.end);
+
+        const eventHeight = (ev.end - ev.start) / (1000 * 60 * 60);
+
+        const color = stringToColor(ev.title);
+
+        const div = document.createElement("div");
+        div.className = "event";
+        div.innerHTML = `
+            <div class="times">
+                <p>${startTime}</p>
+                <p>${endTime}</p>
+            </div>
+            <div class="details">
+                <div class="seperator" style="background-color: ${color}; min-height: ${eventHeight * 8}vh;"></div>
+                <div class="details-text">
+                    <p class="title">${ev.title}</p>
+                    <p class="location">${ev.location}</p>
+                </div>
+            </div>
+        `;
+        container.appendChild(div);
+    }
+
+    if (events.length === 0) {
+        container.innerHTML = "<p>Aucun événement ce jour</p>";
+    }
+}
+
+// navigation jour précédent / suivant
+function setupDayNavigation() {
+    const prevBtn = document.getElementById("preview-day-btn");
+    const nextBtn = document.getElementById("next-day-btn");
+
+    prevBtn.addEventListener("click", () => {
+        if (currentDayIndex > 0) {
+            renderDayView(currentDayIndex - 1);
+        }
+    });
+
+    nextBtn.addEventListener("click", () => {
+        if (currentDayIndex < eventDays.length - 1) {
+            renderDayView(currentDayIndex + 1);
+        }
+    });
+}
+
+// après chargement ICS → construire la liste des jours et initialiser la vue
+async function loadICS() {
+    try {
+        const icsText = await fetchICS();
+        eventsCache = parseICS(icsText);
+        eventsCache.sort((a, b) => a.start - b.start);
+
+        buildEventDays();       // <-- ici
+        renderNextCourses();    // vue 3 prochains
+        // vue journée → commence au 1er jour trouvé
+        setupDayNavigation();   // brancher les boutons
+
+        console.log("Events chargés:", eventsCache);
+    } catch (err) {
+        console.error("Erreur ICS:", err);
+    }
+}
+
+// trouve l'index du jour du prochain cours à venir
+function findNextEventDayIndex() {
+    const now = new Date();
+    for (let i = 0; i < eventDays.length; i++) {
+        const day = eventDays[i];
+        const hasFutureEvent = eventsCache.some(e =>
+            normalizeDate(e.start).getTime() === day.getTime() && e.end > now
+        );
+        if (hasFutureEvent) {
+            return i;
+        }
+    }
+    // fallback: si rien trouvé (par ex. tous passés) → dernier jour dispo
+    return eventDays.length - 1;
 }
