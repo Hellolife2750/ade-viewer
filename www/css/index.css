@@ -383,4 +383,12 @@ body #app #change-address-modal .modal-content #save-address-btn {
   border-radius: 2rem;
   font-weight: bold;
 }
+
+body #app #debug-view {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 70vw;
+  height: 20vh;
+}
 /*# sourceMappingURL=index.css.map */

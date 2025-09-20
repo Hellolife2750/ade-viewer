@@ -289,5 +289,13 @@ body {
                 }
             }
         }
+
+        #debug-view {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 70vw;
+            height: 20vh;
+        }
     }
 }

@@ -1,51 +1,15 @@
+import { StorageManager } from './storage_manager.js';
+import { RequestsManager } from './requests_manager.js';
+import { ICSParser } from './ics_parser.js';
+import { StyleFormatter } from './style_formatter.js';
+
 document.addEventListener('deviceready', onDeviceReady, false);
 
 // let ICS_URL = "https://adeapp.bordeaux-inp.fr/jsp/custom/modules/plannings/anonymous_cal.jsp?resources=3972&projectId=1&calType=ical&firstDate=2025-08-18&lastDate=2026-08-23&displayConfigId=71";
-let ICS_URL = "http://localhost:3000/ics"; // ton ICS
+// let ICS_URL = "http://localhost:3000/ics"; // ton ICS
+let ICS_URL = "https://drive.google.com/uc?export=download&id=1QC-h3XB5YKJP-AsqwXB-Hr9ybCnFjVBk"; // debug
 
 let eventsCache = [];
-
-// accès au stockage de variables en interne
-class StorageManager {
-    static setItem(key, value) {
-        if (window.NativeStorage) {
-            NativeStorage.setItem(key, value,
-                () => console.log(`[NativeStorage] ${key} enregistré.`),
-                err => console.error(`[NativeStorage] Erreur setItem(${key}) :`, err)
-            );
-        } else {
-            localStorage.setItem(key, value);
-            console.log(`[localStorage] ${key} enregistré.`);
-        }
-    }
-
-    static getItem(key, callback) {
-        if (window.NativeStorage) {
-            NativeStorage.getItem(key,
-                value => callback(value),
-                err => {
-                    console.error(`[NativeStorage] Erreur getItem(${key}) :`, err);
-                    callback(null);
-                }
-            );
-        } else {
-            const val = localStorage.getItem(key);
-            callback(val);
-        }
-    }
-
-    static removeItem(key) {
-        if (window.NativeStorage) {
-            NativeStorage.remove(key,
-                () => console.log(`[NativeStorage] ${key} supprimé.`),
-                err => console.error(`[NativeStorage] Erreur removeItem(${key}) :`, err)
-            );
-        } else {
-            localStorage.removeItem(key);
-            console.log(`[localStorage] ${key} supprimé.`);
-        }
-    }
-}
 
 // enregistrer/charger un fichier ICS dans le stockage local
 class FileManager {
@@ -61,8 +25,6 @@ class FileManager {
 
         return hasFile && hasFS && !isBrowserPlatform;
     }
-
-
 
     static async saveIcsFile(text) {
         if (!this.isNativeFileSystemAvailable()) {
@@ -153,148 +115,6 @@ class FileManager {
     }
 }
 
-
-class RequestsManager {
-    // get request
-    static httpGet(url) {
-        return new Promise((resolve, reject) => {
-            cordova.plugin.http.sendRequest(
-                url,
-                { method: "get" },
-                (response) => resolve(response),
-                (error) => reject(error)
-            );
-        });
-    }
-}
-
-class ICSParser {
-
-    // helper : parse une date iCal (ex: 20250916T140000Z ou 20250916T140000 ou 20250916)
-    static parseICalDate(value) {
-        if (!value) return null;
-        // match : YYYY MM DD [T HH MM SS [Z]]
-        const m = value.match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})(Z)?)?$/i);
-        if (!m) return null;
-
-        const year = parseInt(m[1], 10);
-        const month = parseInt(m[2], 10) - 1; // month index 0-11
-        const day = parseInt(m[3], 10);
-        const hour = m[4] ? parseInt(m[4], 10) : 0;
-        const minute = m[5] ? parseInt(m[5], 10) : 0;
-        const second = m[6] ? parseInt(m[6], 10) : 0;
-        const hasZ = !!m[7];
-
-        if (hasZ) {
-            // temps exprimé en UTC -> utiliser Date.UTC pour éviter les parsers foireux
-            return new Date(Date.UTC(year, month, day, hour, minute, second));
-        } else {
-            // pas de Z -> on considère temps local (si TZID était présent on pourrait améliorer)
-            return new Date(year, month, day, hour, minute, second);
-        }
-    }
-
-    // parse ICS : renvoie tableau d'événements avec start/end en Date objets
-    static parseICS(icsText) {
-        // déplier les lignes (RFC 5545 : les lignes peuvent être "folded")
-        const unfolded = icsText.replace(/\r?\n[ \t]/g, "");
-
-        // découper par VEVENT
-        const vevents = unfolded.split(/BEGIN:VEVENT/).slice(1);
-        const events = [];
-
-        for (let vevent of vevents) {
-            // fonction utilitaire pour récupérer la valeur d'une propriété (gère aussi les params après ;)
-            const getProp = (prop) => {
-                const re = new RegExp(prop + '(?:;[^:]*)?:(.+)', 'i');
-                const m = vevent.match(re);
-                if (!m) return null;
-                // on prend seulement jusqu'au premier retour à la ligne (s'il y en a)
-                return m[1].split(/\r?\n/)[0].trim();
-            };
-
-            const title = getProp('SUMMARY') || '';
-            const location = getProp('LOCATION') || '';
-            const description = getProp('DESCRIPTION') || '';
-
-            const startRaw = getProp('DTSTART'); // ex: 20250916T140000Z OR 20250916T140000
-            const endRaw = getProp('DTEND');
-
-            const start = startRaw ? ICSParser.parseICalDate(startRaw) : null;
-            const end = endRaw ? ICSParser.parseICalDate(endRaw) : null;
-
-            // si on veut, on peut aussi récupérer TZID depuis la ligne (extraction basique)
-            // const tzMatch = vevent.match(/DTSTART;(.*?TZID=.*?):/i);
-
-            if (start && end) {
-                events.push({
-                    title,
-                    location,
-                    notes: description.replace(/\\n/g, '\n'),
-                    start,
-                    end
-                });
-            }
-        }
-
-        return events;
-    }
-
-}
-
-class StyleFormatter {
-    // formate une date en "14h30"
-    static formatHeure(date) {
-        return date
-            .toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
-            .replace(":", "h");
-    }
-
-    static formatJour(date, month_format = "short") {
-        return date.toLocaleDateString("fr-FR", {
-            weekday: "short",
-            day: "numeric",
-            month: month_format
-        });
-    }
-
-    // formate une durée ISO en "5mn", "2h" ou "3j"    
-    static formatDuree(isoDateStr) {
-        const then = new Date(isoDateStr);
-        const now = new Date();
-
-        const diffMs = now - then;
-        const diffMinutes = Math.floor(diffMs / 60000);
-
-        if (diffMinutes < 60) {
-            return `${diffMinutes}mn`;
-        } else if (diffMinutes < 1440) {
-            const hours = Math.floor(diffMinutes / 60);
-            return `${hours}h`;
-        } else {
-            const days = Math.floor(diffMinutes / 1440);
-            return `${days}j`;
-        }
-    }
-
-    // normaliser une date à minuit
-    static normalizeDate(d) {
-        return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-    }
-
-    // Palette : 12 couleurs distinctes en HSL (360° / 12 = 30° entre chaque)
-    static stringToColor(str) {
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-            hash = str.charCodeAt(i) + ((hash << 5) - hash);
-            hash = hash & hash; // 32bit int
-        }
-        const index = Math.abs(hash) % 12; // 12 couleurs
-        const hue = index * 30; // 0,30,60,...330
-        return `hsl(${hue}, 70%, 50%)`;
-    }
-}
-
 // montre/masque des éléments (tableaux d'IDs)    
 function toggleView(showIds, hideIds, showStyle = "block") {
     for (let id of showIds) {
@@ -352,8 +172,116 @@ function refreshCalendar() {
     fetchICS().then(() => loadICS()).then(() => renderNextCourses());
 }
 
+/*function logToFile(message) {
+    const timestamp = new Date().toISOString();
+    const line = `${timestamp} ${message}\n`;
+
+    window.resolveLocalFileSystemURL(
+        cordova.file.externalDataDirectory,   // <<< dossier accessible en USB
+        function (dirEntry) {
+            dirEntry.getFile("debug.log", { create: true }, function (fileEntry) {
+                fileEntry.createWriter(function (fileWriter) {
+                    fileWriter.seek(fileWriter.length); // append
+                    fileWriter.write(line);
+                }, console.error);
+            }, console.error);
+        },
+        console.error
+    );
+}*/
+
+function setupConsoleRedirect() {
+    const debugView = document.getElementById("debug-view");
+    if (!debugView) {
+        console.warn("⚠️ Pas de textarea #debug-view trouvé.");
+        return;
+    }
+
+    // Fonction utilitaire pour écrire dans la textarea
+    function appendLog(level, args) {
+        const timestamp = new Date().toISOString();
+        const msg = args.map(a =>
+            (typeof a === "object" ? JSON.stringify(a) : a)
+        ).join(" ");
+        debugView.value += `[${timestamp}] [${level}] ${msg}\n`;
+        debugView.scrollTop = debugView.scrollHeight; // auto-scroll
+    }
+
+    // Redirection
+    const originalLog = console.log;
+    console.log = (...args) => {
+        appendLog("LOG", args);
+        originalLog.apply(console, args);
+    };
+
+    const originalWarn = console.warn;
+    console.warn = (...args) => {
+        appendLog("WARN", args);
+        originalWarn.apply(console, args);
+    };
+
+    const originalError = console.error;
+    console.error = (...args) => {
+        appendLog("ERROR", args);
+        originalError.apply(console, args);
+    };
+}
+
+// téléchargement périodique de l'ICS en tâche de fond
+async function fetchIcsJob() {
+    // Plugin non dispo (ex : browser)
+    if ((typeof BackgroundFetch === 'undefined') || typeof cordova !== "undefined" && cordova.platformId === "browser") {
+        console.warn("⚠️ BackgroundFetch non disponible.");
+        return;
+    }
+
+    // Vérifie si déjà configuré
+    const wasConfigured = await StorageManager.getItemAsync("backgroundFetchConfigured");
+
+    if (wasConfigured) {
+        console.log("✅ BackgroundFetch déjà configuré, on ne fait rien.");
+        return;
+    }
+
+    console.log("⚙️ Configuration initiale du BackgroundFetch...");
+
+    BackgroundFetch.configure(
+        {
+            minimumFetchInterval: 2, // 1440 = 24h
+            stopOnTerminate: false,
+            enableHeadless: true,
+            requiredNetworkType: BackgroundFetch.NETWORK_TYPE_ANY // optionnel
+        },
+        async function (taskId) {
+            console.log("[BackgroundFetch] 🕑 Lancement d'une tâche :", taskId);
+
+            /*try {
+                await fetchICS(); // ta fonction qui fetch l'ICS
+                console.log("[BackgroundFetch] fetchICS() exécuté");
+            } catch (err) {
+                console.error("[BackgroundFetch] Erreur :", err);
+            }*/
+            StorageManager.setItem("last_update", new Date().toISOString());
+            console.log("[BackgroundFetch] 🔄 maj_last_update_termine");
+
+            BackgroundFetch.finish(taskId);
+        },
+        function (error) {
+            console.error("[BackgroundFetch] ❌ Erreur config :", error);
+        }
+    );
+
+    // Marquer comme configuré (à ne pas refaire plus tard)
+    StorageManager.setItem("backgroundFetchConfigured", true);
+}
+
 function onDeviceReady() {
-    // setupUI();
+    setupConsoleRedirect();
+    /*console.log = (msg) => {
+        logToFile(msg);
+        window.console.log(msg);
+    };*/
+
     initEvents();
 
     StorageManager.getItem("ics_url", function (value) {
@@ -366,6 +294,7 @@ function onDeviceReady() {
         }
     });
 
+    fetchIcsJob();
 }
 
 function trySaveAddress() {
@@ -403,10 +332,26 @@ function tryScanAdressQrCOde() {
     );
 }
 
+// obtenir l'URL ICS (depuis variable globale de préférence, stockage sinon)
+async function getIcsUrl() {
+    if (typeof ICS_URL !== "undefined" && ICS_URL) {
+        return ICS_URL;
+    }
+
+    const url = await StorageManager.getItemAsync("ics_url");
+    if (!url) {
+        console.error("❌ Aucun ICS_URL disponible.");
+        throw new Error("ICS_URL introuvable.");
+    }
+
+    return url;
+}
+
 // récupère le fichier ICS depuis le serveur et le sauvegarde en local
 async function fetchICS() {
     try {
-        const response = await RequestsManager.httpGet(ICS_URL); // response.data contient le texte ICS
+        const url = await getIcsUrl();
+        const response = await RequestsManager.httpGet(url); // response.data contient le texte ICS
         await FileManager.saveIcsFile(response.data);
         StorageManager.setItem("last_update", new Date().toISOString());
         return response.data; // <- renvoyer le texte directement
@@ -429,7 +374,7 @@ async function loadICS() {
         // vue journée → commence au 1er jour trouvé
         setupDayNavigation();   // brancher les boutons
 
-        console.log("Events chargés:", eventsCache);
+        console.log("Events chargés: ", eventsCache.length + " événements.");
     } catch (err) {
         console.error("Erreur ICS:", err);
     }
@@ -445,7 +390,7 @@ function renderNextCourses() {
 
     const now = new Date();
     const upcoming = eventsCache.filter(e => e.end > now).slice(0, 3);
-    console.log("Prochains cours:", upcoming);
+    console.log("Prochains cours:", upcoming.length);
 
     // groupement par jour
     let currentDay = "";
@@ -518,7 +463,7 @@ function buildEventDays() {
     }
     // tri croissant
     eventDays = Array.from(dayMap.values()).sort((a, b) => a - b);
-    console.log("Jours avec événements:", eventDays);
+    console.log("Jours avec événements:", eventDays.length);
 }
 
 // affiche les événements du jour courant
