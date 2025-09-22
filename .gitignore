@@ -28,3 +28,4 @@ node_modules/
 /android/
 /dev-proxy/ADECal.ics
 resources/android/
+*.keystore

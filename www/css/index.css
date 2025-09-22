@@ -356,8 +356,6 @@ body #app #change-address-modal .modal-content .mediums-container #open-scanner-
 body #app #change-address-modal .modal-content .mediums-container #open-scanner-btn:focus {
   background-color: #722241ff;
   color: #fff;
-  -webkit-transform: scale(0.95);
-          transform: scale(0.95);
 }
 
 body #app #change-address-modal .modal-content .mediums-container .or-separator {
@@ -390,5 +388,9 @@ body #app #debug-view {
   left: 0;
   width: 70vw;
   height: 20vh;
+}
+
+body .clickable:active {
+  scale: 0.95;
 }
 /*# sourceMappingURL=index.css.map */

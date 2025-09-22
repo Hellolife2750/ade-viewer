@@ -259,7 +259,7 @@ body {
                         &:focus {
                             background-color: #722241ff;
                             color: #fff;
-                            transform: scale(0.95);
+                            // transform: scale(0.95);
                         }
                     }
 
@@ -297,5 +297,9 @@ body {
             width: 70vw;
             height: 20vh;
         }
+    }
+
+    .clickable:active {
+        scale: 0.95;
     }
 }

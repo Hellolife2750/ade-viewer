@@ -20,14 +20,14 @@
         <header>
             <img class="header-logo" src="res/img/icon.svg" alt="ADE logo">
             <div class="menu-buttons">
-                <img id="toggle-home-view" src="res/img/icons/home.svg" alt="home icon">
+                <img id="toggle-home-view" class="clickable" src="res/img/icons/home.svg" alt="home icon">
             </div>
         </header>
 
         <main>
             <div id="home-view">
                 <div id="next-events-container">
-                    <img class="open-week-btn"  id="toggle-week-view" src="res/img/icons/arrow-angle.svg" alt="arrow up angle icon">
+                    <img class="open-week-btn clickable"  id="toggle-week-view" src="res/img/icons/arrow-angle.svg" alt="arrow up angle icon">
 
                     <div id="next-events">
                         <p class="next-events-title">3 prochains cours</p>
@@ -55,32 +55,29 @@
         <footer>
             <div class="left">
                 <p id="last-update-label">⌛ Mis à jour il y a <span>0mn</span></p>
-                <img class="action-btn" id="refresh-cal-btn" src="res/img/icons/reload.svg" alt="refresh planning icon">
+                <img class="action-btn clickable" id="refresh-cal-btn" src="res/img/icons/reload.svg" alt="refresh planning icon">
             </div>
             <div class="right">
-                <img class="action-btn" id="change-address-btn" src="res/img/icons/qrcode.svg" alt="qrcode icon">
+                <img class="action-btn clickable" id="change-address-btn" src="res/img/icons/qrcode.svg" alt="qrcode icon">
             </div>
         </footer>
 
         <div id="change-address-modal">
             <div class="modal-content">
-                <img id="close-address-modal-btn" src="res/img/icons/cross.svg" alt="close icon">
+                <img id="close-address-modal-btn" class="clickable" src="res/img/icons/cross.svg" alt="close icon">
 
                 <h2>Charger un emploi du temps</h2>
                 <div class="seperator"></div>
 
                 <div class="mediums-container">
-                    <button id="open-scanner-btn">Scanner un QR code</button>
+                    <button id="open-scanner-btn" class="clickable">Scanner un QR code</button>
                     <p class="or-separator">OU</p>
                     <input type="text" id="address-input" placeholder="Entrez l'adresse de votre emploi du temps">
                 </div>
 
-                <button id="save-address-btn">Sauvegarder</button>
+                <button id="save-address-btn" class="clickable">Sauvegarder</button>
             </div>
         </div>
-
-        <textarea id="debug-view"></textarea>
-
     </div>
 
     <script src="cordova.js"></script>

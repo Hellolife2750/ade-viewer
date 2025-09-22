@@ -33,4 +33,23 @@ Sur PC, ouvrir Chrome et aller dans : chrome://inspect
 
 adb logcat | FINDSTR "BackgroundFetch"
 
+## Build release
+
+- `keytool -genkeypair -v -keystore adeviewer-release-key.keystore -keyalg RSA -keysize 2048 -validity 10000 -alias adeviewer`
+
+- `cordova build android --release`
+
+- `zipalign -v 4 .\platforms\android\app\build\outputs\apk\release\app-release-unsigned.apk .\platforms\android\app\build\outputs\apk\release\adeviewer-release.apk`
+
+- `apksigner sign --ks adeviewer-release-key.keystore --ks-key-alias adeviewer .\platforms\android\app\build\outputs\apk\release\adeviewer-release.apk`
+
+- `apksigner verify -v .\platforms\android\app\build\outputs\apk\release\adeviewer-release.apk`
+
+- `adb install -r .\platforms\android\app\build\outputs\apk\release\adeviewer-release.apk`
+
 ## TODO & Bugs
+
+- désactiver l'opti de la batterie
+- dégager fenetre de logs
+- rajouter les taches
+- enlever cours inutiles

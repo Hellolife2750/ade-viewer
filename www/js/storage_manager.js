@@ -19,13 +19,21 @@ export class StorageManager {
             NativeStorage.getItem(key,
                 value => callback(value),
                 err => {
-                    console.error(`[NativeStorage] Erreur getItem(${key}) :`, err);
-                    callback(null);
+                    if (err && err.code === 2) {
+                        console.warn(`[NativeStorage] ⚠️ Clé absente pour getItem(${key})`);
+                    } else {
+                        console.error(`[NativeStorage] ❌ Erreur getItem(${key}) :`, err);
+                    }
+                    callback(null); // renvoyer null en cas d'erreur
                 }
             );
         } else {
             const val = localStorage.getItem(key);
-            callback(val);
+            if (val === null) {
+                // Pas d'erreur ici, juste une absence de clé
+                console.warn(`[localStorage] Clé absente pour getItem(${key})`);
+            }
+            callback(val);  // val peut être null si la clé n'existe pas
         }
     }
 

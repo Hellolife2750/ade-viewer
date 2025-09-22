@@ -9,6 +9,8 @@ document.addEventListener('deviceready', onDeviceReady, false);
 // let ICS_URL = "http://localhost:3000/ics"; // ton ICS
 let ICS_URL = "https://drive.google.com/uc?export=download&id=1QC-h3XB5YKJP-AsqwXB-Hr9ybCnFjVBk"; // debug
 
+let DEBUG = false;
+
 let eventsCache = [];
 
 // enregistrer/charger un fichier ICS dans le stockage local
@@ -191,6 +193,11 @@ function refreshCalendar() {
 }*/
 
 function setupConsoleRedirect() {
+    if (DEBUG) {
+        const textareaHTML = '<textarea id="debug-view"></textarea>';
+        document.getElementById("app").insertAdjacentHTML('beforeend', textareaHTML);
+    }
+
     const debugView = document.getElementById("debug-view");
     if (!debugView) {
         console.warn("⚠️ Pas de textarea #debug-view trouvé.");
@@ -229,40 +236,48 @@ function setupConsoleRedirect() {
 
 // téléchargement périodique de l'ICS en tâche de fond
 async function fetchIcsJob() {
-    // Plugin non dispo (ex : browser)
-    if ((typeof BackgroundFetch === 'undefined') || typeof cordova !== "undefined" && cordova.platformId === "browser") {
+    // Vérifie si BackgroundFetch dispo
+    if ((typeof BackgroundFetch === 'undefined') ||
+        (typeof cordova !== "undefined" && cordova.platformId === "browser")) {
         console.warn("⚠️ BackgroundFetch non disponible.");
         return;
     }
 
     // Vérifie si déjà configuré
     const wasConfigured = await StorageManager.getItemAsync("backgroundFetchConfigured");
-
     if (wasConfigured) {
-        console.log("✅ BackgroundFetch déjà configuré, on ne fait rien.");
+        console.log("✅ BackgroundFetch déjà configuré");
         return;
     }
 
     console.log("⚙️ Configuration initiale du BackgroundFetch...");
 
+    // Configure BackgroundFetch (quand app est en premier plan ou arrière-plan)
     BackgroundFetch.configure(
         {
-            minimumFetchInterval: 2, // 1440 = 24h
+            minimumFetchInterval: 1440,
             stopOnTerminate: false,
             enableHeadless: true,
-            requiredNetworkType: BackgroundFetch.NETWORK_TYPE_ANY // optionnel
+            requiresBatteryNotLow: true,
+            requiredNetworkType: BackgroundFetch.NETWORK_TYPE_ANY,
         },
         async function (taskId) {
-            console.log("[BackgroundFetch] 🕑 Lancement d'une tâche :", taskId);
+            console.log("[BackgroundFetch] 🕑 Tâche reçue (foreground/background) :", taskId);
 
-            /*try {
-                await fetchICS(); // ta fonction qui fetch l'ICS
-                console.log("[BackgroundFetch] fetchICS() exécuté");
+            try {
+                await fetchICS();
+                console.log("[BackgroundFetch] ✅ fetchICS exécuté");
             } catch (err) {
-                console.error("[BackgroundFetch] Erreur :", err);
-            }*/
-            StorageManager.setItem("last_update", new Date().toISOString());
-            console.log("[BackgroundFetch] 🔄 maj_last_update_termine");
+                console.error("[BackgroundFetch] ❌ Erreur fetchICS :", err);
+            }
+
+            // Marque la fin de la tâche
+            /*try {
+                StorageManager.setItem("last_update", new Date().toISOString());
+            } catch (err) {
+                console.error("[BackgroundFetch] ❌ Erreur maj_last_update :", err);
+            }
+            console.log("[BackgroundFetch] 🔄 maj_last_update_termine");*/
 
             BackgroundFetch.finish(taskId);
         },
@@ -271,7 +286,7 @@ async function fetchIcsJob() {
         }
     );
 
-    // Marquer comme configuré (à ne pas refaire plus tard)
+    // Marque comme configuré
     StorageManager.setItem("backgroundFetchConfigured", true);
 }
 
