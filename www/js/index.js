@@ -57,10 +57,10 @@ class FileManager {
     }
 
     static async loadIcsFile() {
+        showLoader(true);
+
         // Natif uniquement
-        console.log("on rentre dans le load");
         if (this.isNativeFileSystemAvailable()) {
-            console.log("on considère natif");
 
             try {
                 const result = await new Promise((resolve, reject) => {
@@ -86,6 +86,8 @@ class FileManager {
                     );
                 });
 
+                showLoader(false);
+
                 return result;
             } catch (err) {
                 console.warn("⚠️ Fichier ICS introuvable ou erreur lecture :", err);
@@ -94,6 +96,8 @@ class FileManager {
         } else {
             console.warn("💡 Mode browser ou plugin fichier indisponible. Téléchargement direct.");
         }
+
+        showLoader(false);
 
         return await fetchICS();
     }
@@ -117,6 +121,18 @@ class FileManager {
     }
 }
 
+function showLoader(show) {
+    console.log("showLoader", show);
+    const loaderContainer = document.getElementById("loader-container");
+    if (show) {
+        loaderContainer.style.display = "flex";
+        document.body.style.overflow = "hidden"; // empêche le scroll
+    } else {
+        loaderContainer.style.display = "none";
+        document.body.style.overflow = "auto";
+    }
+}
+
 // montre/masque des éléments (tableaux d'IDs)    
 function toggleView(showIds, hideIds, showStyle = "block") {
     for (let id of showIds) {
@@ -124,6 +140,15 @@ function toggleView(showIds, hideIds, showStyle = "block") {
     }
     for (let id of hideIds) {
         document.getElementById(id).style.display = "none";
+    }
+}
+
+function toggleActiveView(activeViewId, inactiveViewIds) {
+    for (let id of activeViewId) {
+        document.getElementById(id).classList.add("active-view");
+    }
+    for (let id of inactiveViewIds) {
+        document.getElementById(id).classList.remove("active-view");
     }
 }
 
@@ -137,7 +162,8 @@ function showChangeAddressModal(can_close = true) {
 // binder les boutons / événements au clic
 function initEvents() {
     document.getElementById("toggle-week-view").addEventListener("click", () => {
-        toggleView(["week-view"], ["home-view"]);
+        // toggleView(["week-view"], ["home-view"]);
+        toggleActiveView(["week-view"], ["home-view"]);
 
         if (eventDays.length > 0) {
             const idx = findNextEventDayIndex();
@@ -146,7 +172,8 @@ function initEvents() {
     });
 
     document.getElementById("toggle-home-view").addEventListener("click", () => {
-        toggleView(["home-view"], ["week-view"]);
+        // toggleView(["home-view"], ["week-view"]);
+        toggleActiveView(["home-view"], ["week-view"]);
     });
 
     document.getElementById("change-address-btn").addEventListener("click", function () {
@@ -168,29 +195,18 @@ function initEvents() {
     document.getElementById("refresh-cal-btn").addEventListener("click", function () {
         refreshCalendar();
     });
+
+    // on rafraichit les prochains cours si on revient sur l'app    
+    document.addEventListener("resume", function () {
+        if (document.getElementById("home-view").classList.contains("active-view")) {
+            renderNextCourses();
+        }
+    });
 }
 
 function refreshCalendar() {
     fetchICS().then(() => loadICS()).then(() => renderNextCourses());
 }
-
-/*function logToFile(message) {
-    const timestamp = new Date().toISOString();
-    const line = `${timestamp} ${message}\n`;
-
-    window.resolveLocalFileSystemURL(
-        cordova.file.externalDataDirectory,   // <<< dossier accessible en USB
-        function (dirEntry) {
-            dirEntry.getFile("debug.log", { create: true }, function (fileEntry) {
-                fileEntry.createWriter(function (fileWriter) {
-                    fileWriter.seek(fileWriter.length); // append
-                    fileWriter.write(line);
-                }, console.error);
-            }, console.error);
-        },
-        console.error
-    );
-}*/
 
 function setupConsoleRedirect() {
     if (DEBUG) {
@@ -271,13 +287,7 @@ async function fetchIcsJob() {
                 console.error("[BackgroundFetch] ❌ Erreur fetchICS :", err);
             }
 
-            // Marque la fin de la tâche
-            /*try {
-                StorageManager.setItem("last_update", new Date().toISOString());
-            } catch (err) {
-                console.error("[BackgroundFetch] ❌ Erreur maj_last_update :", err);
-            }
-            console.log("[BackgroundFetch] 🔄 maj_last_update_termine");*/
+            console.log("[BackgroundFetch] 🔄 maj_last_update_termine");
 
             BackgroundFetch.finish(taskId);
         },
@@ -412,7 +422,7 @@ function renderNextCourses() {
     let dayContainer = null;
 
     for (let event of upcoming) {
-        const dayLabel = StyleFormatter.formatJour(event.start);
+        const dayLabel = StyleFormatter.formatJourSpecial(event.start);
 
         if (dayLabel !== currentDay) {
             currentDay = dayLabel;
@@ -439,6 +449,9 @@ function renderNextCourses() {
                 <div class="details-text">
                     <p class="title">${event.title}</p>
                     <p class="location">${event.location}</p>
+                    <div class="badges-container">
+                        ${isCM(event.location) ? '<img src="res/img/icons/amphi.svg" class="event-badge" title="event\'s badge" draggable="false"/>' : ''}
+                    </div>
                 </div>
             </div>
         `;
@@ -460,7 +473,58 @@ function renderNextCourses() {
             console.log("Pas de date enregistrée.");
         }
     });
+
+    renderHomeworks();
 }
+
+// afficher les devoirs
+async function renderHomeworks() {
+    const container = document.getElementById("homeworks-container");
+    if (!container) {
+        console.error("❌ #homeworks-container introuvable dans le DOM !");
+        return;
+    }
+
+    // reset du container avant de réinsérer
+    container.innerHTML = "";
+
+    // récupérer les devoirs
+    let homeworks = await StorageManager.getItemAsync("homeworks");
+    try {
+        homeworks = homeworks ? JSON.parse(homeworks) : [];
+    } catch (e) {
+        console.warn("[renderHomeworks] homeworks corrompu, reset.");
+        homeworks = [];
+    }
+
+    if (homeworks.length === 0) {
+        container.insertAdjacentHTML("beforeend", `<p>Aucun devoir pour l'instant.</p>`);
+        return;
+    }
+
+    // insertion des devoirs
+    homeworks.forEach(hw => {
+        const dateObj = new Date(hw.date);
+        const html = `
+        <div class="day-homeworks">
+            <p class="day-title">Pour <span class="bold">${StyleFormatter.formatJourSpecial(dateObj)}</span></p>
+            <div class="homework">
+                <div class="header">
+                    <div class="course-name">${hw.course}</div>
+                    <div class="made ${hw.made ? "is-mad" : ""}">${hw.made ? "Fait" : "Non Fait"}</div>
+                </div>
+                <p class="homework-description">${hw.homework}</p>
+                <div class="footer">
+                    <label for="homework-${hw.id}-made">J'ai terminé</label>
+                    <input class="classic-checkbox" type="checkbox" id="homework-${hw.id}-made" name="homework-${hw.id}-made" />
+                </div>
+            </div>
+        </div>
+        `;
+        container.insertAdjacentHTML("beforeend", html);
+    });
+}
+
 
 // Mes grands morts, gestion de la vue "week-view"
 let eventDays = []; // liste des jours (Date sans heure)
@@ -479,6 +543,11 @@ function buildEventDays() {
     // tri croissant
     eventDays = Array.from(dayMap.values()).sort((a, b) => a - b);
     console.log("Jours avec événements:", eventDays.length);
+}
+
+// renvoie si le lieu est un amphi
+function isCM(location) {
+    return location.includes("AMPHI");
 }
 
 // affiche les événements du jour courant
@@ -506,11 +575,18 @@ function renderDayView(index) {
 
         const endTime = StyleFormatter.formatHeure(ev.end);
 
-        const eventHeight = (ev.end - ev.start) / (1000 * 60 * 60);
+        const professorName = StyleFormatter.extractProfessor(ev.notes);
 
-        const color = StyleFormatter.stringToColor(ev.title);
+        let eventHeight = (ev.end - ev.start) / (1000 * 60 * 60);
+
+        let color = StyleFormatter.stringToColor(ev.title);
+
+        // événements sans lieu, généralement cours alternatifs
+        if (ev.location === "") { color = "#888"; eventHeight = 0; }
 
         const div = document.createElement("div");
+        div.setAttribute("data-course-name", ev.title);
+        div.setAttribute("data-course-start", ev.start.toISOString());
         div.className = "event";
         div.innerHTML = `
             <div class="times">
@@ -522,6 +598,10 @@ function renderDayView(index) {
                 <div class="details-text">
                     <p class="title">${ev.title}</p>
                     <p class="location">${ev.location}</p>
+                    <p class="professor">${professorName}</p>
+                    <div class="badges-container">
+                        ${isCM(ev.location) ? '<img src="res/img/icons/amphi.svg" class="event-badge" title="event\'s badge" draggable="false"/>' : ''}
+                    </div>
                 </div>
             </div>
         `;
@@ -531,6 +611,8 @@ function renderDayView(index) {
     if (events.length === 0) {
         container.innerHTML = "<p>Aucun événement ce jour</p>";
     }
+
+    addHomeworkEvents();
 }
 
 // navigation jour précédent / suivant
@@ -565,4 +647,97 @@ function findNextEventDayIndex() {
     }
     // fallback: si rien trouvé (par ex. tous passés) → dernier jour dispo
     return eventDays.length - 1;
+}
+
+// Petite fonction pour générer un identifiant unique
+function generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+
+// Fonction d’ajout de devoir
+async function addHomeworkFromEvent(eventDiv) {
+    const courseName = eventDiv.dataset.courseName;
+    const courseDate = eventDiv.dataset.courseStart;
+
+    const courseDateObj = new Date(courseDate);
+
+    const homeworkText = prompt(`Ajouter un devoir pour ${courseName} le ${StyleFormatter.formatJour(courseDateObj)} :`);
+    if (!homeworkText) return; // annulation ou texte vide
+
+    // Récupérer la liste existante
+    let homeworks = await StorageManager.getItemAsync("homeworks");
+    try {
+        homeworks = homeworks ? JSON.parse(homeworks) : [];
+    } catch (e) {
+        console.warn("[StorageManager] homeworks corrompu, reset.");
+        homeworks = [];
+    }
+
+    // Créer le nouvel objet
+    const newHomework = {
+        id: generateUUID(),
+        course: courseName,
+        homework: homeworkText,
+        made: false,
+        date: courseDate
+    };
+
+    // Ajouter dans le tableau
+    homeworks.push(newHomework);
+
+    // Sauvegarder
+    StorageManager.setItem("homeworks", JSON.stringify(homeworks));
+
+    console.log("✅ Devoir ajouté :", newHomework);
+}
+
+function addHomeworkEvents() {
+    document.querySelectorAll('#week-view .event').forEach(eventDiv => {
+        let startX = 0;
+        let currentX = 0;
+        let dragging = false;
+
+        function start(e) {
+            dragging = true;
+            startX = e.type.includes('mouse') ? e.pageX : e.touches[0].clientX;
+            eventDiv.style.transition = 'none';
+        }
+
+        function move(e) {
+            if (!dragging) return;
+            currentX = e.type.includes('mouse') ? e.pageX : e.touches[0].clientX;
+            let deltaX = currentX - startX;
+            eventDiv.style.transform = `translateX(${deltaX}px)`;
+        }
+
+        function end() {
+            if (!dragging) return;
+            dragging = false;
+            eventDiv.style.transition = 'transform 0.3s ease';
+
+            let deltaX = currentX - startX;
+            if (Math.abs(deltaX) > 80) {
+                // action du swipe
+                addHomeworkFromEvent(eventDiv).then(() => {
+                    renderHomeworks();
+                });
+            }
+            // reset position
+            eventDiv.style.transform = 'translateX(0)';
+        }
+
+        // Events tactiles
+        eventDiv.addEventListener('touchstart', start);
+        eventDiv.addEventListener('touchmove', move);
+        eventDiv.addEventListener('touchend', end);
+
+        // Events souris
+        eventDiv.addEventListener('mousedown', start);
+        window.addEventListener('mousemove', move);
+        window.addEventListener('mouseup', end);
+    });
 }

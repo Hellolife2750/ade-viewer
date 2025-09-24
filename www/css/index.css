@@ -72,6 +72,16 @@ body #app main {
   padding-bottom: 3rem;
 }
 
+body #app main #home-view.view {
+  display: none;
+  -webkit-animation: popScale 0.15s cubic-bezier(0.3, 0.56, 0.23, 0.63);
+          animation: popScale 0.15s cubic-bezier(0.3, 0.56, 0.23, 0.63);
+}
+
+body #app main #home-view.view.active-view {
+  display: block;
+}
+
 body #app main #home-view #next-events-container {
   display: -webkit-box;
   display: -ms-flexbox;
@@ -92,7 +102,8 @@ body #app main #home-view .open-week-btn {
           transform: translateY(50%);
 }
 
-body #app main #home-view #next-events {
+body #app main #home-view #next-events,
+body #app main #home-view #next-homeworks {
   display: -webkit-box;
   display: -ms-flexbox;
   display: flex;
@@ -107,14 +118,14 @@ body #app main #home-view #next-events {
           box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px;
 }
 
-body #app main #home-view .next-events-title {
+body #app main #home-view #next-events .next-events-title {
   text-align: center;
   color: #0b4e50ff;
   margin-bottom: 1rem;
   font-weight: 700;
 }
 
-body #app main #home-view .day-events {
+body #app main #home-view #next-events .day-events {
   display: -webkit-box;
   display: -ms-flexbox;
   display: flex;
@@ -124,13 +135,134 @@ body #app main #home-view .day-events {
           flex-direction: column;
 }
 
-body #app main #home-view .day-events .day-title {
+body #app main #home-view #next-events .day-events .day-title {
   margin-bottom: 1rem;
   font-weight: 700;
 }
 
+body #app main #home-view #next-homeworks {
+  margin-top: 2rem;
+}
+
+body #app main #home-view #next-homeworks .next-homeworks-title {
+  text-align: center;
+  color: #42206aff;
+  margin-bottom: .5rem;
+  font-weight: 700;
+}
+
+body #app main #home-view #next-homeworks #homeworks-container {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+      -ms-flex-direction: column;
+          flex-direction: column;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+body #app main #home-view #next-homeworks #homeworks-container .day-homeworks {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+      -ms-flex-direction: column;
+          flex-direction: column;
+  -webkit-box-align: start;
+      -ms-flex-align: start;
+          align-items: flex-start;
+  gap: 0.5rem;
+}
+
+body #app main #home-view #next-homeworks #homeworks-container .day-homeworks .day-title {
+  display: inline;
+  background-color: #ebdafeff;
+  border-radius: 0 2rem 2rem 0;
+  padding: .5rem;
+}
+
+body #app main #home-view #next-homeworks #homeworks-container .day-homeworks .day-title .bold {
+  font-weight: 700;
+}
+
+body #app main #home-view #next-homeworks #homeworks-container .day-homeworks .homework {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+      -ms-flex-direction: column;
+          flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+body #app main #home-view #next-homeworks #homeworks-container .day-homeworks .homework .header {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: justify;
+      -ms-flex-pack: justify;
+          justify-content: space-between;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+}
+
+body #app main #home-view #next-homeworks #homeworks-container .day-homeworks .homework .header .course-name {
+  font-weight: 700;
+}
+
+body #app main #home-view #next-homeworks #homeworks-container .day-homeworks .homework .header .made {
+  position: relative;
+  background-color: #e2e2e2ff;
+  padding: 2px 8px;
+  border-radius: 0 0 0 5px;
+}
+
+body #app main #home-view #next-homeworks #homeworks-container .day-homeworks .homework .header .made.is-mad {
+  background-color: #ebdafeff;
+}
+
+body #app main #home-view #next-homeworks #homeworks-container .day-homeworks .homework .header .made::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-top: 10px solid whitesmoke;
+  border-left: 10px solid transparent;
+  z-index: 1;
+}
+
+body #app main #home-view #next-homeworks #homeworks-container .day-homeworks .homework .footer {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  gap: 0.5rem;
+  -ms-flex-item-align: end;
+      align-self: flex-end;
+}
+
 body #app main #week-view {
+  width: 90%;
+}
+
+body #app main #week-view.view {
   display: none;
+  -webkit-animation: popScale 0.15s cubic-bezier(0.3, 0.56, 0.23, 0.63);
+          animation: popScale 0.15s cubic-bezier(0.3, 0.56, 0.23, 0.63);
+}
+
+body #app main #week-view.view.active-view {
+  display: block;
 }
 
 body #app main #week-view .navigator-bar {
@@ -143,9 +275,10 @@ body #app main #week-view .navigator-bar {
   -webkit-box-align: center;
       -ms-flex-align: center;
           align-items: center;
-  margin: 1rem 0;
+  margin: 1rem auto;
   border: 1px solid lightgray;
   border-radius: 3px;
+  width: 100%;
 }
 
 body #app main #week-view .navigator-bar button {
@@ -153,13 +286,31 @@ body #app main #week-view .navigator-bar button {
   padding: .5rem;
 }
 
+body #app main #week-view #week-events-container {
+  width: 100%;
+  margin: 0 auto;
+}
+
 body #app main #home-view .event,
 body #app main #week-view .event {
   margin-left: .5rem;
-  margin-bottom: 1rem;
   display: -webkit-box;
   display: -ms-flexbox;
   display: flex;
+  -ms-touch-action: pan-y;
+      touch-action: pan-y;
+  /* évite conflits scroll */
+  -webkit-user-select: none;
+     -moz-user-select: none;
+      -ms-user-select: none;
+          user-select: none;
+  cursor: -webkit-grab;
+  cursor: grab;
+}
+
+body #app main #home-view .event:not(.empty),
+body #app main #week-view .event:not(.empty) {
+  margin-bottom: 1rem;
 }
 
 body #app main #home-view .details,
@@ -210,15 +361,35 @@ body #app main #week-view .details-text {
   margin: .3rem 0;
 }
 
-body #app main #home-view .title,
-body #app main #week-view .title {
+body #app main #home-view .details-text .title,
+body #app main #week-view .details-text .title {
   font-weight: bold;
   margin-bottom: .5rem;
 }
 
-body #app main #home-view .location,
-body #app main #week-view .location {
+body #app main #home-view .details-text .location,
+body #app main #week-view .details-text .location {
   font-size: .9rem;
+  margin-bottom: .5rem;
+}
+
+body #app main #home-view .details-text .professor,
+body #app main #week-view .details-text .professor {
+  font-size: .7rem;
+  margin-bottom: .5rem;
+}
+
+body #app main #home-view .details-text .badges-container,
+body #app main #week-view .details-text .badges-container {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  gap: 5px;
+}
+
+body #app main #home-view .details-text .badges-container .event-badge,
+body #app main #week-view .details-text .badges-container .event-badge {
+  height: 1.5rem;
 }
 
 body #app footer {
@@ -390,7 +561,86 @@ body #app #debug-view {
   height: 20vh;
 }
 
+body #app #loader-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: none;
+  -webkit-box-pack: center;
+      -ms-flex-pack: center;
+          justify-content: center;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  z-index: 2000;
+}
+
+body #app #loader-container #loader {
+  border: 8px solid #f3f3f3;
+  border-top: 8px solid #722241ff;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  -webkit-animation: spin 1s linear infinite;
+          animation: spin 1s linear infinite;
+}
+
 body .clickable:active {
-  scale: 0.95;
+  scale: 0.9;
+}
+
+@-webkit-keyframes popScale {
+  0% {
+    -webkit-transform: scale(0.5);
+            transform: scale(0.5);
+  }
+  50% {
+    -webkit-transform: scale(1.05);
+            transform: scale(1.05);
+  }
+  100% {
+    -webkit-transform: scale(1);
+            transform: scale(1);
+  }
+}
+
+@keyframes popScale {
+  0% {
+    -webkit-transform: scale(0.5);
+            transform: scale(0.5);
+  }
+  50% {
+    -webkit-transform: scale(1.05);
+            transform: scale(1.05);
+  }
+  100% {
+    -webkit-transform: scale(1);
+            transform: scale(1);
+  }
+}
+
+@-webkit-keyframes spin {
+  0% {
+    -webkit-transform: rotate(0deg);
+            transform: rotate(0deg);
+  }
+  100% {
+    -webkit-transform: rotate(360deg);
+            transform: rotate(360deg);
+  }
+}
+
+@keyframes spin {
+  0% {
+    -webkit-transform: rotate(0deg);
+            transform: rotate(0deg);
+  }
+  100% {
+    -webkit-transform: rotate(360deg);
+            transform: rotate(360deg);
+  }
 }
 /*# sourceMappingURL=index.css.map */

@@ -50,6 +50,5 @@ adb logcat | FINDSTR "BackgroundFetch"
 ## TODO & Bugs
 
 - désactiver l'opti de la batterie
-- dégager fenetre de logs
 - rajouter les taches
 - enlever cours inutiles

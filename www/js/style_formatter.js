@@ -9,12 +9,29 @@ export class StyleFormatter {
             .replace(":", "h");
     }
 
+    // formate une date en "lun. 14 sept." ou "lun. 14 septembre"
     static formatJour(date, month_format = "short") {
         return date.toLocaleDateString("fr-FR", {
             weekday: "short",
             day: "numeric",
             month: month_format
         });
+    }
+
+    // formate une date en "Aujourd'hui", "Demain" ou "lun. 14 sept."
+    static formatJourSpecial(date) {
+        const now = new Date();
+        const tomorrow = new Date();
+        tomorrow.setDate(now.getDate() + 1);
+
+        // Comparaison des dates sans l'heure
+        if (date.toDateString() === now.toDateString()) {
+            return "Aujourd'hui";
+        } else if (date.toDateString() === tomorrow.toDateString()) {
+            return "Demain";
+        } else {
+            return this.formatJour(date);
+        }
     }
 
     // formate une durée ISO en "5mn", "2h" ou "3j"    
@@ -51,5 +68,17 @@ export class StyleFormatter {
         const index = Math.abs(hash) % 12; // 12 couleurs
         const hue = index * 30; // 0,30,60,...330
         return `hsl(${hue}, 70%, 50%)`;
+    }
+
+    // Extrait le nom du professeur à partir des notes (2ème ligne en partant de la fin)
+    static extractProfessor(notes) {
+        // Diviser la chaîne en lignes, en utilisant le séparateur \n
+        const lines = notes.split("\n");
+
+        // On prend la 2ème ligne en partant de la fin (l'avant-dernière ligne)
+        const professorName = lines[lines.length - 3];
+
+        // Retourner le nom du professeur
+        return professorName.trim(); // Utilisation de .trim() pour nettoyer les espaces autour du nom
     }
 }
