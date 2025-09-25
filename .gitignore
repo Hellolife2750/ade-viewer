@@ -29,3 +29,4 @@ node_modules/
 /dev-proxy/ADECal.ics
 resources/android/
 *.keystore
+.gradle-cache/

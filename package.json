@@ -10,7 +10,10 @@
     "proxy": "node dev-proxy/server.js",
     "browser": "cordova run browser",
     "dev": "concurrently \"npm run proxy\" \"npm run browser\"",
-    "buil-icons": "cordova-res android --type icon --skip-config --copy"
+    "buil-icons": "cordova-res android --type icon --skip-config --copy",
+    "build-container": "cd docker && docker build -t cordova-dev -f Dockerfile . && cd ..",
+    "start-container": "docker run -it --rm --device /dev/bus/usb -v \"$(pwd):/app\" -v \"$(pwd)/.gradle-cache:/root/.gradle\" -p 8000:8000 cordova-dev bash -c 'cd /app && bash'",
+    "build-release": "docker run --rm -it -v \"$(pwd):/app\" \"$(pwd)/.gradle-cache:/root/.gradle\" -e ALIAS_NAME='adeviewer' -e KEYSTORE_PASS='<passwd>' -e KEY_PASS='<passwd>' cordova-dev bash -c '/app/docker/build_release.sh'"
   },
   "keywords": [
     "ecosystem:cordova"

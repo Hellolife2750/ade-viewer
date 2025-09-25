@@ -34,6 +34,8 @@ RUN apt -qq install -y nodejs
 
 # Cordova
 RUN npm i -g cordova@${CORDOVA_VERSION}
+RUN npm install -g cordova-res
+RUN cordova telemetry off
 
 # Gradle
 RUN apt -qq install -y unzip
@@ -51,3 +53,11 @@ RUN curl -so /tmp/commandlinetools-linux-${ANDROID_CMDTOOLS_VERSION}_latest.zip 
 # Update and accept licences
 COPY android.packages android.packages
 RUN ( sleep 5 && while [ 1 ]; do sleep 1; echo y; done ) | sdkmanager --package_file=android.packages
+
+EXPOSE 8000
+
+# Ajouter les outils de build (zipalign, apksigner) au PATH
+ENV PATH $PATH:$ANDROID_SDK_ROOT/build-tools/35.0.0
+
+# installer adb pour le deboggage
+RUN apt-get update && apt-get install -y android-tools-adb

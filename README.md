@@ -17,9 +17,19 @@ ADE viewer est une app mobile (android/IOS) permettant de visualiser un EDT ADE.
 Prérequis :
 
 - Git
-- Node
+- Docker
 
 Pour lancer le projet, suivez les étapes :
+
+1) Construire l'image Docker : `cd docker && docker build -t cordova-dev -f Dockerfile . && cd ..`
+
+2) Lancer l'app conteneurisée : `docker run -it --rm --device /dev/bus/usb -v "$(pwd):/app" -v "$(pwd)/.gradle-cache:/root/.gradle" -p 8000:8000 cordova-dev bash -c 'cd /app && bash'`
+
+3) Build l'app en prod : `docker run --rm -it -v "$(pwd):/app" "$(pwd)/.gradle-cache:/root/.gradle" -e ALIAS_NAME='adeviewer' -e KEYSTORE_PASS='<passwd>' -e KEY_PASS='<passwd>' cordova-dev bash -c '/app/docker/build_release.sh'`
+
+### Commandes cordova utiles
+
+todo
 
 ### Run
 
