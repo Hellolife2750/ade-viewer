@@ -1,64 +1,113 @@
-# ADE
+# 📅 ADE Viewer
 
-## Description
+**Une app mobile simple et rapide pour consulter ton emploi du temps ADE sans te prendre la tête.**  
+Développée avec Cordova pour Android (et bientôt iOS ?), open source et contributive.
+
+![screenshot](screenshots/home.png)
+> *Aperçu de l'écran d'accueil - simple, rapide, efficace*
+
+---
+
+## 🚀 Fonctionnalités
+
+- Synchronise ton emploi du temps avec ADE
+- 🔍 Consulte rapidement les prochains cours à venir
+- 📆 Navigation jour par jour
+- Crée des tâches associées aux cours
+- 📲 Installation facile (fichier APK dispo dans les [releases](#-téléchargement))
+- 🧑‍💻 Code open source, contributions bienvenues !
+
+---
+
+## 📦 Téléchargement
+
+Tu veux juste **utiliser l'app** ?  
+Rien de plus simple !
+
+1. 📲 Télécharge la dernière version stable ici : [⬇️ Releases GitHub](https://github.com/<ton-utilisateur>/<repo>/releases)
+2. 🔐 Active l'installation d'apps de sources inconnues sur ton téléphone
+3. 📥 Installe l’APK
+4. ✅ Profite de ton emploi du temps ADE sans passer par l'UI web infâme
+
+---
+
+## 🛠️ Installation développeur
+
+Tu veux contribuer, forker, tester en local ou builder l’app ? Tu es au bon endroit.
+
+### ✅ Prérequis
+
+- Git
+- Docker (obligatoire)
+- Android avec debug USB activé (si tu veux tester sur ton téléphone)
+
+---
+
+### ⚙️ Mise en place
+
+```bash
+# 1. Construire l'image Docker
+cd docker
+docker build -t cordova-dev -f Dockerfile .
+cd ..
+
+# 2. Lancer l’environnement de dev Cordova
+docker run -it --rm --device /dev/bus/usb -v "$(pwd):/app" -v "$(pwd)/.gradle-cache:/root/.gradle" -p 8000:8000 cordova-dev bash -c 'cd /app && bash
+
+# 3. Dans le conteneur, lance l’app dans le navigateur
+cordova platform add browser
+cordova run browser
+```
+
+### 📱 Tester sur ton téléphone
+
+```bash
+cordova platform add android
+cordova run android --device
+``
+
+### 🔐 Build release Android
+
+
+```bash
+docker run --rm -it \
+  -v "$(pwd):/app" \
+  -v "$(pwd)/.gradle-cache:/root/.gradle" \
+  -e ALIAS_NAME='adeviewer' \
+  -e KEYSTORE_PASS='<passwd>' \
+  -e KEY_PASS='<passwd>' \
+  cordova-dev \
+  bash -c '/app/docker/build_release.sh'
+```
+
+Pour build une release, tu dois renseigner générer ton propre keystore.
+
+### 🧪 Outils de debug
+
+Installer une apk en filaire :
+```bash
+adb install -r platforms/android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+Consulter les logs ADB :
+```bash
+adb logcat | grep "ADE"
+```
+ 
+Consulter les logs JS :
+Sur PC, ouvrir "chrome://inspect", sélectionner l'appareil filaire connecté. l'app doit être en cours d'exécution.
+
+
+## 🧩 TODO & Bugs
+
+- désactiver l'opti de la batterie
+- rajouter les taches
+- enlever cours inutiles
+
+## 👤 Auteur
 
 - Auteur : Clément
 - Dernière modification : sept 2025
 - Version : 1.0
 - Technos : CordovaJS + Node
-- Dépôt Git:
-
-ADE viewer est une app mobile (android/IOS) permettant de visualiser un EDT ADE.
-
-## Installation (utilisateur)
-
-## Installation (développeur)
-
-Prérequis :
-
-- Git
-- Docker
-
-Pour lancer le projet, suivez les étapes :
-
-1) Construire l'image Docker : `cd docker && docker build -t cordova-dev -f Dockerfile . && cd ..`
-
-2) Lancer l'app conteneurisée : `docker run -it --rm --device /dev/bus/usb -v "$(pwd):/app" -v "$(pwd)/.gradle-cache:/root/.gradle" -p 8000:8000 cordova-dev bash -c 'cd /app && bash'`
-
-3) Build l'app en prod : `docker run --rm -it -v "$(pwd):/app" "$(pwd)/.gradle-cache:/root/.gradle" -e ALIAS_NAME='adeviewer' -e KEYSTORE_PASS='<passwd>' -e KEY_PASS='<passwd>' cordova-dev bash -c '/app/docker/build_release.sh'`
-
-### Commandes cordova utiles
-
-todo
-
-### Run
-
-cordova run android --device
-
-### Debug
-
-cordova build android --debug
-adb install -r platforms/android/app/build/outputs/apk/debug/app-debug.apk
-Sur PC, ouvrir Chrome et aller dans : chrome://inspect
-
-adb logcat | FINDSTR "BackgroundFetch"
-
-## Build release
-
-- `keytool -genkeypair -v -keystore adeviewer-release-key.keystore -keyalg RSA -keysize 2048 -validity 10000 -alias adeviewer`
-
-- `cordova build android --release`
-
-- `zipalign -v 4 .\platforms\android\app\build\outputs\apk\release\app-release-unsigned.apk .\platforms\android\app\build\outputs\apk\release\adeviewer-release.apk`
-
-- `apksigner sign --ks adeviewer-release-key.keystore --ks-key-alias adeviewer .\platforms\android\app\build\outputs\apk\release\adeviewer-release.apk`
-
-- `apksigner verify -v .\platforms\android\app\build\outputs\apk\release\adeviewer-release.apk`
-
-- `adb install -r .\platforms\android\app\build\outputs\apk\release\adeviewer-release.apk`
-
-## TODO & Bugs
-
-- désactiver l'opti de la batterie
-- rajouter les taches
-- enlever cours inutiles
+- Dépôt Git: https://github.com/Hellolife2750/ade-viewer
