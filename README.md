@@ -10,10 +10,10 @@ Développée avec Cordova pour Android (et bientôt iOS ?), open source et contr
 
 ## 🚀 Fonctionnalités
 
-- Synchronise ton emploi du temps avec ADE
+- 🔄 Synchronise ton emploi du temps avec ADE
 - 🔍 Consulte rapidement les prochains cours à venir
 - 📆 Navigation jour par jour
-- Crée des tâches associées aux cours
+- 🎯 Crée des tâches associées aux cours
 - 📲 Installation facile (fichier APK dispo dans les [releases](#-téléchargement))
 - 🧑‍💻 Code open source, contributions bienvenues !
 
@@ -52,7 +52,12 @@ docker build -t cordova-dev -f Dockerfile .
 cd ..
 
 # 2. Lancer l’environnement de dev Cordova
-docker run -it --rm --device /dev/bus/usb -v "$(pwd):/app" -v "$(pwd)/.gradle-cache:/root/.gradle" -p 8000:8000 cordova-dev bash -c 'cd /app && bash
+docker run -it --rm \
+    --device /dev/bus/usb \ 
+    -v "$(pwd):/app" \
+    -v "$(pwd)/.gradle-cache:/root/.gradle" \
+    -p 8000:8000 cordova-dev \
+    bash -c 'cd /app && bash
 
 # 3. Dans le conteneur, lance l’app dans le navigateur
 cordova platform add browser
@@ -64,7 +69,7 @@ cordova run browser
 ```bash
 cordova platform add android
 cordova run android --device
-``
+```
 
 ### 🔐 Build release Android
 
@@ -80,7 +85,7 @@ docker run --rm -it \
   bash -c '/app/docker/build_release.sh'
 ```
 
-Pour build une release, tu dois renseigner générer ton propre keystore.
+=> Pour build une release, tu dois renseigner un keystore.
 
 ### 🧪 Outils de debug
 
@@ -95,7 +100,8 @@ adb logcat | grep "ADE"
 ```
  
 Consulter les logs JS :
-Sur PC, ouvrir "chrome://inspect", sélectionner l'appareil filaire connecté. l'app doit être en cours d'exécution.
+
+Sur PC, ouvrir `chrome://inspect`, sélectionner l'appareil filaire connecté. l'app doit être en cours d'exécution.
 
 
 ## 🧩 TODO & Bugs
