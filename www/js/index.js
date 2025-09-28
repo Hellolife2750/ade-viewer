@@ -198,14 +198,14 @@ function initEvents() {
 
     // on rafraichit les prochains cours si on revient sur l'app    
     document.addEventListener("resume", function () {
-        if (document.getElementById("home-view").classList.contains("active-view")) {
-            renderNextCourses();
-        }
+        renderNextCourses();
     });
 }
 
 function refreshCalendar() {
-    fetchICS().then(() => loadICS()).then(() => renderNextCourses());
+    showLoader(true);
+    fetchICS().then(() => loadICS());
+    showLoader(false);
 }
 
 function setupConsoleRedirect() {
@@ -315,7 +315,7 @@ function onDeviceReady() {
         } else {
             ICS_URL = value;
             document.getElementById("address-input").value = value;
-            loadICS().then(() => renderNextCourses());
+            loadICS();
         }
     });
 
@@ -406,7 +406,7 @@ async function loadICS() {
 }
 
 // affiche les 3 prochains cours
-function renderNextCourses() {
+async function renderNextCourses() {
     const container = document.getElementById("day-events-container");
     if (!container) return;
 
@@ -474,7 +474,27 @@ function renderNextCourses() {
         }
     });
 
-    renderHomeworks();
+    await renderHomeworks();
+}
+
+// supprimer les devoirs expirés du stockage
+async function cleanupExpiredHomeworks(homeworks) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // on neutralise l'heure pour ne comparer que la date
+
+    const validHomeworks = homeworks.filter(hw => {
+        const hwDate = new Date(hw.date);
+        hwDate.setHours(0, 0, 0, 0);
+        return hwDate >= today;
+    });
+
+    // Si des devoirs expirés ont été supprimés, mettre à jour le stockage
+    if (validHomeworks.length !== homeworks.length) {
+        await StorageManager.setItem("homeworks", JSON.stringify(validHomeworks));
+        console.log("🧹 Devoirs expirés supprimés du stockage.");
+    }
+
+    return validHomeworks;
 }
 
 // afficher les devoirs
@@ -497,13 +517,16 @@ async function renderHomeworks() {
         homeworks = [];
     }
 
-    if (homeworks.length === 0) {
+    // Nettoyage des devoirs expirés
+    const validHomeworks = await cleanupExpiredHomeworks(homeworks);
+
+    if (validHomeworks.length === 0) {
         container.insertAdjacentHTML("beforeend", `<p>Aucun devoir pour l'instant.</p>`);
         return;
     }
 
     // insertion des devoirs
-    homeworks.forEach(hw => {
+    validHomeworks.forEach(hw => {
         const dateObj = new Date(hw.date);
         const html = `
         <div class="day-homeworks">
@@ -511,17 +534,57 @@ async function renderHomeworks() {
             <div class="homework">
                 <div class="header">
                     <div class="course-name">${hw.course}</div>
-                    <div class="made ${hw.made ? "is-mad" : ""}">${hw.made ? "Fait" : "Non Fait"}</div>
+                    <div class="made ${hw.made ? "is-mad" : ""}" id="made-${hw.id}">${hw.made ? "Fait" : "Non Fait"}</div>
                 </div>
-                <p class="homework-description">${hw.homework}</p>
+                <p class="homework-description ${hw.made ? "is-mad" : ""}" id="desc-${hw.id}">${hw.homework}</p>
                 <div class="footer">
                     <label for="homework-${hw.id}-made">J'ai terminé</label>
-                    <input class="classic-checkbox" type="checkbox" id="homework-${hw.id}-made" name="homework-${hw.id}-made" />
+                    <input class="classic-checkbox homework-toggle" type="checkbox" id="homework-${hw.id}-made" name="homework-${hw.id}-made" data-id="${hw.id}"
+       ${hw.made ? "checked" : ""}/>
                 </div>
             </div>
         </div>
         `;
         container.insertAdjacentHTML("beforeend", html);
+    });
+
+    attachHomeworksListeners();
+}
+
+function attachHomeworksListeners(){
+    // Attacher les listeners de checkbox après l'injection HTML
+    document.querySelectorAll(".homework-toggle").forEach(checkbox => {
+        checkbox.addEventListener("change", async (e) => {
+            const id = e.target.dataset.id;
+            const isChecked = e.target.checked;
+
+            // Récupérer les devoirs
+            let homeworks = await StorageManager.getItemAsync("homeworks");
+            try {
+                homeworks = homeworks ? JSON.parse(homeworks) : [];
+            } catch (err) {
+                console.warn("[checkbox change] homeworks corrompu, reset.");
+                homeworks = [];
+            }
+
+            // Trouver le devoir à modifier
+            const index = homeworks.findIndex(hw => hw.id === id);
+            if (index !== -1) {
+                homeworks[index].made = isChecked;
+
+                // Sauvegarde
+                StorageManager.setItem("homeworks", JSON.stringify(homeworks));
+
+                // Cacher ou montrer la description
+                const madeEl = document.getElementById(`made-${id}`);
+                if (madeEl) {
+                    madeEl.classList.toggle("is-mad", isChecked);
+                    madeEl.innerText = isChecked ? "Fait" : "Non Fait";
+                }
+                const descEl = document.getElementById(`desc-${id}`);
+                descEl?.classList.toggle("is-mad", isChecked);
+            }
+        });
     });
 }
 
@@ -695,7 +758,7 @@ async function addHomeworkFromEvent(eventDiv) {
     console.log("✅ Devoir ajouté :", newHomework);
 }
 
-function addHomeworkEvents() {
+/*function addHomeworkEvents() {
     document.querySelectorAll('#week-view .event').forEach(eventDiv => {
         let startX = 0;
         let currentX = 0;
@@ -740,4 +803,41 @@ function addHomeworkEvents() {
         window.addEventListener('mousemove', move);
         window.addEventListener('mouseup', end);
     });
+}*/
+
+function addHomeworkEvents() {
+    document.querySelectorAll('#week-view .event').forEach(eventDiv => {
+        let pressTimer = null;
+
+        function startPress(e) {
+            e.preventDefault(); // empêche le menu contextuel sur mobile
+            if (pressTimer !== null) return;
+
+            pressTimer = setTimeout(() => {
+                // ⏱️ Déclenché après 700 ms
+                addHomeworkFromEvent(eventDiv).then(() => {
+                    renderHomeworks();
+                });
+            }, 700); // <- durée de l'appui long
+        }
+
+        function cancelPress() {
+            if (pressTimer !== null) {
+                clearTimeout(pressTimer);
+                pressTimer = null;
+            }
+        }
+
+        // Tactile
+        eventDiv.addEventListener('touchstart', startPress);
+        eventDiv.addEventListener('touchend', cancelPress);
+        eventDiv.addEventListener('touchmove', cancelPress);
+        eventDiv.addEventListener('touchcancel', cancelPress);
+
+        // Souris
+        eventDiv.addEventListener('mousedown', startPress);
+        eventDiv.addEventListener('mouseup', cancelPress);
+        eventDiv.addEventListener('mouseleave', cancelPress);
+    });
 }
+

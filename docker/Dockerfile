@@ -54,7 +54,9 @@ RUN curl -so /tmp/commandlinetools-linux-${ANDROID_CMDTOOLS_VERSION}_latest.zip 
 COPY android.packages android.packages
 RUN ( sleep 5 && while [ 1 ]; do sleep 1; echo y; done ) | sdkmanager --package_file=android.packages
 
+# 8000: cordova browser, 3000 : npm proxy
 EXPOSE 8000
+EXPOSE 3000
 
 # Ajouter les outils de build (zipalign, apksigner) au PATH
 ENV PATH $PATH:$ANDROID_SDK_ROOT/build-tools/35.0.0

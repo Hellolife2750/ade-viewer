@@ -53,11 +53,11 @@ cd ..
 
 # 2. Lancer l’environnement de dev Cordova
 docker run -it --rm \
-    --device /dev/bus/usb \ 
+    --device /dev/bus/usb \
     -v "$(pwd):/app" \
     -v "$(pwd)/.gradle-cache:/root/.gradle" \
     -p 8000:8000 cordova-dev \
-    bash -c 'cd /app && bash
+    bash -c 'cd /app && bash'
 
 # 3. Dans le conteneur, lance l’app dans le navigateur
 cordova platform add browser
@@ -109,6 +109,7 @@ Sur PC, ouvrir `chrome://inspect`, sélectionner l'appareil filaire connecté. l
 - désactiver l'opti de la batterie
 - rajouter les taches
 - enlever cours inutiles
+- ajouter un widget montrant le prochain cours
 
 ## 👤 Auteur
 

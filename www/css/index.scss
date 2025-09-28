@@ -179,6 +179,10 @@ body {
                                     }
                                 }
 
+                                .homework-description.is-mad{
+                                    display: none;
+                                }
+
                                 .footer {
                                     display: flex;
                                     align-items: center;
@@ -228,6 +232,8 @@ body {
             #home-view,
             #week-view {
                 .event {
+                    border-radius: 10px;
+
                     margin-left: .5rem;
                     display: flex;
 
@@ -239,6 +245,8 @@ body {
                     /* évite conflits scroll */
                     user-select: none;
                     cursor: grab;
+
+                    transition: all .3s ease-in-out;
                 }
 
                 .details {
@@ -292,6 +300,13 @@ body {
                             height: 1.5rem;
                         }
                     }
+                }
+            }
+
+            #week-view {
+                .event:active {
+                    background-color: rgb(231, 230, 230);
+                    scale: .98;
                 }
             }
         }
