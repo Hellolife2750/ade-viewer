@@ -13,6 +13,8 @@ let DEBUG = false;
 
 let eventsCache = [];
 
+const UPDATE_THRESHOLD_HOURS = 24;
+
 // enregistrer/charger un fichier ICS dans le stockage local
 class FileManager {
     static filename = "planning.ics";
@@ -57,51 +59,46 @@ class FileManager {
     }
 
     static async loadIcsFile() {
-        showLoader(true);
-
-        // Natif uniquement
-        if (this.isNativeFileSystemAvailable()) {
-
-            try {
-                const result = await new Promise((resolve, reject) => {
-                    window.resolveLocalFileSystemURL(
-                        cordova.file.dataDirectory + FileManager.filename,
-                        function (fileEntry) {
-                            fileEntry.file(function (file) {
-                                const reader = new FileReader();
-
-                                reader.onloadend = function () {
-                                    console.log("✅ Fichier ICS lu depuis le stockage natif !");
-                                    resolve(this.result);
-                                };
-
-                                reader.onerror = function (e) {
-                                    reject(e);
-                                };
-
-                                reader.readAsText(file);
-                            }, reject);
-                        },
-                        reject
-                    );
-                });
-
-                showLoader(false);
-
-                return result;
-            } catch (err) {
-                console.warn("⚠️ Fichier ICS introuvable ou erreur lecture :", err);
-                // => fallback : fetch depuis l’URL
+        return await withLoader(async () => {
+            // Natif uniquement
+            if (this.isNativeFileSystemAvailable()) {
+                try {
+                    const result = await new Promise((resolve, reject) => {
+                        window.resolveLocalFileSystemURL(
+                            cordova.file.dataDirectory + FileManager.filename,
+                            function (fileEntry) {
+                                fileEntry.file(function (file) {
+                                    const reader = new FileReader();
+    
+                                    reader.onloadend = function () {
+                                        console.log("✅ Fichier ICS lu depuis le stockage natif !");
+                                        resolve(this.result);
+                                    };
+    
+                                    reader.onerror = function (e) {
+                                        reject(e);
+                                    };
+    
+                                    reader.readAsText(file);
+                                }, reject);
+                            },
+                            reject
+                        );
+                    });
+    
+                    return result;
+                } catch (err) {
+                    console.warn("⚠️ Fichier ICS introuvable ou erreur lecture :", err);
+                    // => fallback : fetch depuis l’URL
+                }
+            } else {
+                console.warn("💡 Mode browser ou plugin fichier indisponible. Téléchargement direct.");
             }
-        } else {
-            console.warn("💡 Mode browser ou plugin fichier indisponible. Téléchargement direct.");
-        }
-
-        showLoader(false);
-
-        return await fetchICS();
+    
+            return await fetchICS();
+        });
     }
-
+    
     static async deleteIcsFile() {
         if (!this.isNativeFileSystemAvailable()) {
             console.warn("💡 Pas de système de fichier (browser). Rien à supprimer.");
@@ -121,12 +118,31 @@ class FileManager {
     }
 }
 
+let activeLoaderCount = 0;
+
+async function withLoader(asyncFn) {
+    showLoader(true);
+    try {
+        return await asyncFn();
+    } finally {
+        showLoader(false);
+    }
+}
+
 function showLoader(show) {
     console.log("showLoader", show);
     const loaderContainer = document.getElementById("loader-container");
+
     if (show) {
+        activeLoaderCount++;
+    } else {
+        activeLoaderCount = Math.max(0, activeLoaderCount - 1);
+    }
+
+    // Affiche ou cache le loader selon le compteur
+    if (activeLoaderCount > 0) {
         loaderContainer.style.display = "flex";
-        document.body.style.overflow = "hidden"; // empêche le scroll
+        document.body.style.overflow = "hidden";
     } else {
         loaderContainer.style.display = "none";
         document.body.style.overflow = "auto";
@@ -202,10 +218,12 @@ function initEvents() {
     });
 }
 
-function refreshCalendar() {
-    showLoader(true);
-    fetchICS().then(() => loadICS());
-    showLoader(false);
+
+async function refreshCalendar() {
+    await withLoader(async () => {
+        await fetchICS();
+        await loadICS();
+    });
 }
 
 function setupConsoleRedirect() {
@@ -302,10 +320,6 @@ async function fetchIcsJob() {
 
 function onDeviceReady() {
     setupConsoleRedirect();
-    /*console.log = (msg) => {
-        logToFile(msg);
-        window.console.log(msg);
-    };*/
 
     initEvents();
 
@@ -316,10 +330,34 @@ function onDeviceReady() {
             ICS_URL = value;
             document.getElementById("address-input").value = value;
             loadICS();
+            refreshIfOutdated();
         }
     });
 
     fetchIcsJob();
+}
+
+// refetch le ics au chargement s'il est trop vieux
+function refreshIfOutdated() {
+    StorageManager.getItem("last_update", function (dateStr) {
+        const now = new Date();
+
+        if (!dateStr) {
+            console.log("🕒 Aucune mise à jour enregistrée. Rafraîchissement nécessaire.");
+            return refreshCalendar();
+        }
+
+        const lastUpdate = new Date(dateStr);
+        const diffMs = now - lastUpdate;
+        const diffHours = diffMs / (1000 * 60 * 60);
+
+        if (diffHours > UPDATE_THRESHOLD_HOURS) {
+            console.log(`🔁 Mise à jour dépassée (${diffHours.toFixed(1)}h > ${UPDATE_THRESHOLD_HOURS}h). Rafraîchissement...`);
+            refreshCalendar();
+        } else {
+            console.log(`✅ Données à jour (${diffHours.toFixed(1)}h < ${UPDATE_THRESHOLD_HOURS}h).`);
+        }
+    });
 }
 
 function trySaveAddress() {
@@ -497,6 +535,11 @@ async function cleanupExpiredHomeworks(homeworks) {
     return validHomeworks;
 }
 
+// trier par date plus proche au plus loin
+function sortHomeworksByDate(allHomeworks) {
+    return allHomeworks.slice().sort((a, b) => new Date(a.date) - new Date(b.date));
+}
+
 // afficher les devoirs
 async function renderHomeworks() {
     const container = document.getElementById("homeworks-container");
@@ -518,7 +561,9 @@ async function renderHomeworks() {
     }
 
     // Nettoyage des devoirs expirés
-    const validHomeworks = await cleanupExpiredHomeworks(homeworks);
+    let validHomeworks = await cleanupExpiredHomeworks(homeworks);
+
+    validHomeworks = sortHomeworksByDate(validHomeworks); 
 
     if (validHomeworks.length === 0) {
         container.insertAdjacentHTML("beforeend", `<p>Aucun devoir pour l'instant.</p>`);
@@ -664,6 +709,7 @@ function renderDayView(index) {
                     <p class="professor">${professorName}</p>
                     <div class="badges-container">
                         ${isCM(ev.location) ? '<img src="res/img/icons/amphi.svg" class="event-badge" title="event\'s badge" draggable="false"/>' : ''}
+                        <img src="res/img/icons/pencil.svg" class="add-homework" title="add homework button" draggable="false"/>
                     </div>
                 </div>
             </div>
@@ -721,15 +767,12 @@ function generateUUID() {
     });
 }
 
-// Fonction d’ajout de devoir
+// Fonction d’ajout ou de modification de devoir
 async function addHomeworkFromEvent(eventDiv) {
     const courseName = eventDiv.dataset.courseName;
     const courseDate = eventDiv.dataset.courseStart;
 
     const courseDateObj = new Date(courseDate);
-
-    const homeworkText = prompt(`Ajouter un devoir pour ${courseName} le ${StyleFormatter.formatJour(courseDateObj)} :`);
-    if (!homeworkText) return; // annulation ou texte vide
 
     // Récupérer la liste existante
     let homeworks = await StorageManager.getItemAsync("homeworks");
@@ -740,104 +783,52 @@ async function addHomeworkFromEvent(eventDiv) {
         homeworks = [];
     }
 
-    // Créer le nouvel objet
-    const newHomework = {
-        id: generateUUID(),
-        course: courseName,
-        homework: homeworkText,
-        made: false,
-        date: courseDate
-    };
+    // Chercher s'il y a déjà un devoir pour ce cours et cette date
+    const existingHomework = homeworks.find(hw => hw.course === courseName && hw.date === courseDate);
 
-    // Ajouter dans le tableau
-    homeworks.push(newHomework);
+    const defaultText = existingHomework ? existingHomework.homework : "";
+    const promptText = existingHomework
+        ? `Modifier le devoir pour ${courseName} le ${StyleFormatter.formatJour(courseDateObj)} :`
+        : `Ajouter un devoir pour ${courseName} le ${StyleFormatter.formatJour(courseDateObj)} :`;
+
+    const homeworkText = prompt(promptText, defaultText);
+    if (homeworkText === null) return; // annulation
+
+    if (homeworkText.trim() === "") return; // texte vide
+
+    if (existingHomework) {
+        // Modifier l'existant
+        existingHomework.homework = homeworkText;
+        console.log("✏️ Devoir modifié :", existingHomework);
+    } else {
+        // Créer un nouvel objet
+        const newHomework = {
+            id: generateUUID(),
+            course: courseName,
+            homework: homeworkText,
+            made: false,
+            date: courseDate
+        };
+        homeworks.push(newHomework);
+        console.log("✅ Devoir ajouté :", newHomework);
+    }
 
     // Sauvegarder
     StorageManager.setItem("homeworks", JSON.stringify(homeworks));
-
-    console.log("✅ Devoir ajouté :", newHomework);
 }
-
-/*function addHomeworkEvents() {
-    document.querySelectorAll('#week-view .event').forEach(eventDiv => {
-        let startX = 0;
-        let currentX = 0;
-        let dragging = false;
-
-        function start(e) {
-            dragging = true;
-            startX = e.type.includes('mouse') ? e.pageX : e.touches[0].clientX;
-            eventDiv.style.transition = 'none';
-        }
-
-        function move(e) {
-            if (!dragging) return;
-            currentX = e.type.includes('mouse') ? e.pageX : e.touches[0].clientX;
-            let deltaX = currentX - startX;
-            eventDiv.style.transform = `translateX(${deltaX}px)`;
-        }
-
-        function end() {
-            if (!dragging) return;
-            dragging = false;
-            eventDiv.style.transition = 'transform 0.3s ease';
-
-            let deltaX = currentX - startX;
-            if (Math.abs(deltaX) > 80) {
-                // action du swipe
-                addHomeworkFromEvent(eventDiv).then(() => {
-                    renderHomeworks();
-                });
-            }
-            // reset position
-            eventDiv.style.transform = 'translateX(0)';
-        }
-
-        // Events tactiles
-        eventDiv.addEventListener('touchstart', start);
-        eventDiv.addEventListener('touchmove', move);
-        eventDiv.addEventListener('touchend', end);
-
-        // Events souris
-        eventDiv.addEventListener('mousedown', start);
-        window.addEventListener('mousemove', move);
-        window.addEventListener('mouseup', end);
-    });
-}*/
 
 function addHomeworkEvents() {
     document.querySelectorAll('#week-view .event').forEach(eventDiv => {
-        let pressTimer = null;
+        const addButton = eventDiv.querySelector('.add-homework');
 
-        function startPress(e) {
-            e.preventDefault(); // empêche le menu contextuel sur mobile
-            if (pressTimer !== null) return;
-
-            pressTimer = setTimeout(() => {
-                // ⏱️ Déclenché après 700 ms
+        if (addButton) {
+            addButton.addEventListener('click', (e) => {
+                e.stopPropagation(); // évite les effets de bord si d'autres événements sont liés à l'event
                 addHomeworkFromEvent(eventDiv).then(() => {
                     renderHomeworks();
                 });
-            }, 700); // <- durée de l'appui long
+            });
         }
-
-        function cancelPress() {
-            if (pressTimer !== null) {
-                clearTimeout(pressTimer);
-                pressTimer = null;
-            }
-        }
-
-        // Tactile
-        eventDiv.addEventListener('touchstart', startPress);
-        eventDiv.addEventListener('touchend', cancelPress);
-        eventDiv.addEventListener('touchmove', cancelPress);
-        eventDiv.addEventListener('touchcancel', cancelPress);
-
-        // Souris
-        eventDiv.addEventListener('mousedown', startPress);
-        eventDiv.addEventListener('mouseup', cancelPress);
-        eventDiv.addEventListener('mouseleave', cancelPress);
     });
 }
 

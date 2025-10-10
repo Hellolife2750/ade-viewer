@@ -42,7 +42,10 @@ export class StyleFormatter {
         const diffMs = now - then;
         const diffMinutes = Math.floor(diffMs / 60000);
 
-        if (diffMinutes < 60) {
+        if (diffMinutes <= 1){
+            return `À l'instant`;
+        }
+        else if (diffMinutes < 60) {
             return `${diffMinutes}mn`;
         } else if (diffMinutes < 1440) {
             const hours = Math.floor(diffMinutes / 60);

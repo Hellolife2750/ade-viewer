@@ -30,3 +30,4 @@ node_modules/
 resources/android/
 *.keystore
 .gradle-cache/
+.android-cache/

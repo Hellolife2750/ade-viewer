@@ -241,10 +241,10 @@ body {
                         margin-bottom: 1rem;
                     }
 
-                    touch-action: pan-y;
-                    /* évite conflits scroll */
+                    /*touch-action: pan-y;
+                    évite conflits scroll
                     user-select: none;
-                    cursor: grab;
+                    cursor: grab;*/
 
                     transition: all .3s ease-in-out;
                 }
@@ -296,7 +296,7 @@ body {
                         gap: 5px;
                         // margin-bottom: 5px;
 
-                        .event-badge {
+                        .event-badge,.add-homework {
                             height: 1.5rem;
                         }
                     }

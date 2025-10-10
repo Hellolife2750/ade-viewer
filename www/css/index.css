@@ -254,8 +254,9 @@ body #app main #week-view .details-text .badges-container {
   display: flex;
   gap: 5px;
 }
-body #app main #home-view .details-text .badges-container .event-badge,
-body #app main #week-view .details-text .badges-container .event-badge {
+body #app main #home-view .details-text .badges-container .event-badge, body #app main #home-view .details-text .badges-container .add-homework,
+body #app main #week-view .details-text .badges-container .event-badge,
+body #app main #week-view .details-text .badges-container .add-homework {
   height: 1.5rem;
 }
 body #app main #week-view .event:active {

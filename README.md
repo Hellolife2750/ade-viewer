@@ -55,7 +55,7 @@ cd ..
 docker run -it --rm \
     --device /dev/bus/usb \
     -v "$(pwd):/app" \
-    -v "$(pwd)/.gradle-cache:/root/.gradle" \
+    -v "$(pwd)/.gradle-cache:/opt/gradle-8.7" \
     -p 8000:8000 cordova-dev \
     bash -c 'cd /app && bash'
 
@@ -77,7 +77,7 @@ cordova run android --device
 ```bash
 docker run --rm -it \
   -v "$(pwd):/app" \
-  -v "$(pwd)/.gradle-cache:/root/.gradle" \
+  -v "$(pwd)/.gradle-cache:/opt/gradle-8.7" \
   -e ALIAS_NAME='adeviewer' \
   -e KEYSTORE_PASS='<passwd>' \
   -e KEY_PASS='<passwd>' \

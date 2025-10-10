@@ -22,6 +22,7 @@ RESET='\033[0m'
 
 echo "➡️ Ajout de la plateforme Android"
 cordova platform rm android >/dev/null 2>&1 || true
+rm -rf ./android/ >/dev/null 2>&1 || true
 cordova platform add android
 
 # patcher compatibilité module gradle 5
@@ -32,6 +33,7 @@ fi
 
 echo "🎨 Génération des icônes"
 cordova-res android --type icon --skip-config --copy
+cordova-res android --type splash --copy
 
 echo "⚙️ Build APK release"
 cordova build android --release -- --cdvCompileSdkVersion=34
