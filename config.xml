@@ -13,6 +13,11 @@
     <allow-intent href="https://adeapp.bordeaux-inp.fr/*" />
     <preference name="AndroidPersistentFileLocation" value="Compatibility" />
     <platform name="android">
+        <preference name="SplashScreen" value="screen" />
+        <preference name="SplashScreenDelay" value="3000" />
+        <preference name="SplashScreenBackgroundColor" value="#ffffff" />
+        <preference name="AndroidWindowSplashScreenAnimatedIcon" value="resources/splash.png" />
+        <preference name="AndroidWindowSplashScreen" value="true" />
         <preference name="AndroidWindowSplashScreenBackground" value="#fff" />
         <splash src="resources/splash.png" />
         <icon src="resources/icon.png" />

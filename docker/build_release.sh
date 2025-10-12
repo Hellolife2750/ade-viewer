@@ -34,6 +34,7 @@ fi
 echo "🎨 Génération des icônes"
 cordova-res android --type icon --skip-config --copy
 cordova-res android --type splash --copy
+cp -r android/app/src/main/res/* platforms/android/app/src/main/res/
 
 echo "⚙️ Build APK release"
 cordova build android --release -- --cdvCompileSdkVersion=34
