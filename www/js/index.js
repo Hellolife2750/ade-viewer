@@ -11,9 +11,11 @@ let ICS_URL = "https://drive.google.com/uc?export=download&id=1QC-h3XB5YKJP-Asqw
 
 let DEBUG = false;
 
+const IS_ENSEIRB = true;
+
 let eventsCache = [];
 
-const UPDATE_THRESHOLD_HOURS = 24;
+const UPDATE_THRESHOLD_HOURS = 30;
 
 // enregistrer/charger un fichier ICS dans le stockage local
 class FileManager {
@@ -219,11 +221,17 @@ function initEvents() {
 }
 
 
-async function refreshCalendar() {
-    await withLoader(async () => {
-        await fetchICS();
+async function refreshCalendar({showLoader = true, failSilently = false} = {}) {
+    const task = async () => {
+        await fetchICS({failSilently: failSilently});
         await loadICS();
-    });
+    };
+
+    if (showLoader) {
+        await withLoader(task);
+    } else {
+        await task();
+    }
 }
 
 function setupConsoleRedirect() {
@@ -411,16 +419,19 @@ async function getIcsUrl() {
 }
 
 // récupère le fichier ICS depuis le serveur et le sauvegarde en local
-async function fetchICS() {
+async function fetchICS({failSilently = false} = {}) {
     try {
         const url = await getIcsUrl();
         const response = await RequestsManager.httpGet(url); // response.data contient le texte ICS
+
         await FileManager.saveIcsFile(response.data);
         StorageManager.setItem("last_update", new Date().toISOString());
         return response.data; // <- renvoyer le texte directement
     } catch (err) {
         console.error("❌ Erreur:", err);
-        alert("Erreur chargement ICS: " + err.error || err);
+        if (!failSilently){
+            alert("Erreur chargement ICS: " + err.error || err);
+        }
         return ""; // ou throw err si tu veux propager l'erreur
     }
 }
@@ -566,7 +577,7 @@ async function renderHomeworks() {
     validHomeworks = sortHomeworksByDate(validHomeworks); 
 
     if (validHomeworks.length === 0) {
-        container.insertAdjacentHTML("beforeend", `<p>Aucun devoir pour l'instant.</p>`);
+        container.insertAdjacentHTML("beforeend", `<p class="centered">Aucun devoir pour l'instant.</p>`);
         return;
     }
 
@@ -683,14 +694,14 @@ function renderDayView(index) {
 
         const endTime = StyleFormatter.formatHeure(ev.end);
 
-        const professorName = StyleFormatter.extractProfessor(ev.notes);
+        const professorName = (IS_ENSEIRB) ? StyleFormatter.extractProfessor(ev.notes) : "";
 
         let eventHeight = (ev.end - ev.start) / (1000 * 60 * 60);
 
         let color = StyleFormatter.stringToColor(ev.title);
 
         // événements sans lieu, généralement cours alternatifs
-        if (ev.location === "") { color = "#888"; eventHeight = 0; }
+        if (IS_ENSEIRB && ev.location === "") { color = "#888"; eventHeight = 0; }
 
         const div = document.createElement("div");
         div.setAttribute("data-course-name", ev.title);
@@ -729,17 +740,18 @@ function setupDayNavigation() {
     const prevBtn = document.getElementById("preview-day-btn");
     const nextBtn = document.getElementById("next-day-btn");
 
-    prevBtn.addEventListener("click", () => {
+    // Remplacer complètement le handler précédent (évite empilement)
+    prevBtn.onclick = () => {
         if (currentDayIndex > 0) {
             renderDayView(currentDayIndex - 1);
         }
-    });
+    };
 
-    nextBtn.addEventListener("click", () => {
+    nextBtn.onclick = () => {
         if (currentDayIndex < eventDays.length - 1) {
             renderDayView(currentDayIndex + 1);
         }
-    });
+    };
 }
 
 // trouve l'index du jour du prochain cours à venir

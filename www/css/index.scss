@@ -123,6 +123,10 @@ body {
                         gap: 1rem;
                         margin-top: 2rem;
 
+                        .centered {
+                            align-self: center;
+                        }
+
                         .day-homeworks {
                             display: flex;
                             flex-direction: column;

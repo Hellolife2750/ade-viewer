@@ -104,6 +104,9 @@ body #app main #home-view #next-homeworks #homeworks-container {
   gap: 1rem;
   margin-top: 2rem;
 }
+body #app main #home-view #next-homeworks #homeworks-container .centered {
+  align-self: center;
+}
 body #app main #home-view #next-homeworks #homeworks-container .day-homeworks {
   display: flex;
   flex-direction: column;
@@ -194,12 +197,10 @@ body #app main #week-view .event {
   border-radius: 10px;
   margin-left: 0.5rem;
   display: flex;
-  touch-action: pan-y;
-  /* évite conflits scroll */
-  -webkit-user-select: none;
-     -moz-user-select: none;
-          user-select: none;
-  cursor: grab;
+  /*touch-action: pan-y;
+  évite conflits scroll
+  user-select: none;
+  cursor: grab;*/
   transition: all 0.3s ease-in-out;
 }
 body #app main #home-view .event:not(.empty),
