@@ -37,6 +37,9 @@ RUN npm i -g cordova@${CORDOVA_VERSION}
 RUN npm install -g cordova-res
 RUN cordova telemetry off
 
+# SASS Compiler
+RUN npm install -g sass
+
 # Gradle
 RUN apt -qq install -y unzip
 RUN curl -so /tmp/gradle-${GRADLE_VERSION}-bin.zip https://downloads.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip && \

@@ -13,7 +13,7 @@
 
 ## 🚀 Fonctionnalités
 
-- 🔄 Synchronise ton emploi du temps avec ADE
+- 🔄 Synchronise automatiquement ton emploi du temps avec ADE
 - 🔍 Consulte rapidement les prochains cours à venir
 - 📆 Navigation jour par jour
 - 🎯 Crée des tâches associées aux cours
@@ -61,7 +61,10 @@ docker run -it --rm \
     -p 8000:8000 cordova-dev \
     bash -c 'cd /app && bash'
 
-# 3. Dans le conteneur, lance l’app dans le navigateur
+# 3. Dans le conteneur, pour compiler le SCSS
+npm run sass:watch
+
+# 4. Dans le conteneur, lance l’app dans le navigateur
 cordova platform add browser
 cordova run browser
 ```

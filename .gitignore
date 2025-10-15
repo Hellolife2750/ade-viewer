@@ -31,3 +31,5 @@ resources/android/
 *.keystore
 .gradle-cache/
 .android-cache/
+/www/css/index.css
+/www/css/index.css.map
