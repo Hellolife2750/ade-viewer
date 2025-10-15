@@ -24,7 +24,7 @@
 
 ## 📦 Téléchargement
 
-1. 📲 Télécharge la dernière version stable ici : [⬇️ Releases GitHub](https://github.com/<ton-utilisateur>/<repo>/releases)
+1. 📲 Télécharge la dernière version stable ici : [⬇️ Releases GitHub](https://github.com/Hellolife2750/ade-viewer/releases)
 2. 🔐 Active l'installation d'apps de sources inconnues sur ton téléphone
 3. 📥 Installe l’APK
 4. ✅ Ouvre l'app, et entre le lien de ton emploi du temps généré via la page ADE
