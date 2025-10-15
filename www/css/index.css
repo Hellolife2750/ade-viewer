@@ -222,7 +222,8 @@ body #app main #home-view .seperator,
 body #app main #week-view .seperator {
   height: 100%;
   min-height: 15vh;
-  width: 0.5rem;
+  width: 8px; /*.5rem*/
+  min-width: 8px;
   border-radius: 2rem;
   background-color: crimson;
   margin-right: 0.5rem;

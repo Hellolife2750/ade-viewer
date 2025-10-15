@@ -3,19 +3,15 @@ import { RequestsManager } from './requests_manager.js';
 import { ICSParser } from './ics_parser.js';
 import { StyleFormatter } from './style_formatter.js';
 
-document.addEventListener('deviceready', onDeviceReady, false);
 
-// let ICS_URL = "https://adeapp.bordeaux-inp.fr/jsp/custom/modules/plannings/anonymous_cal.jsp?resources=3972&projectId=1&calType=ical&firstDate=2025-08-18&lastDate=2026-08-23&displayConfigId=71";
-// let ICS_URL = "http://localhost:3000/ics"; // ton ICS
-let ICS_URL = "https://drive.google.com/uc?export=download&id=1QC-h3XB5YKJP-AsqwXB-Hr9ybCnFjVBk"; // debug
-
-let DEBUG = false;
-
+const DEBUG = false;
 const IS_ENSEIRB = true;
+const UPDATE_THRESHOLD_HOURS = 30;
 
+let ICS_URL;
 let eventsCache = [];
 
-const UPDATE_THRESHOLD_HOURS = 30;
+document.addEventListener('deviceready', onDeviceReady, false);
 
 // enregistrer/charger un fichier ICS dans le stockage local
 class FileManager {
@@ -342,7 +338,7 @@ function onDeviceReady() {
         }
     });
 
-    fetchIcsJob();
+    // fetchIcsJob();
 }
 
 // refetch le ics au chargement s'il est trop vieux
@@ -352,7 +348,7 @@ function refreshIfOutdated() {
 
         if (!dateStr) {
             console.log("🕒 Aucune mise à jour enregistrée. Rafraîchissement nécessaire.");
-            return refreshCalendar();
+            return refreshCalendar({failSilently: true});
         }
 
         const lastUpdate = new Date(dateStr);
@@ -361,7 +357,7 @@ function refreshIfOutdated() {
 
         if (diffHours > UPDATE_THRESHOLD_HOURS) {
             console.log(`🔁 Mise à jour dépassée (${diffHours.toFixed(1)}h > ${UPDATE_THRESHOLD_HOURS}h). Rafraîchissement...`);
-            refreshCalendar();
+            refreshCalendar({failSilently: true});
         } else {
             console.log(`✅ Données à jour (${diffHours.toFixed(1)}h < ${UPDATE_THRESHOLD_HOURS}h).`);
         }
@@ -559,9 +555,6 @@ async function renderHomeworks() {
         return;
     }
 
-    // reset du container avant de réinsérer
-    container.innerHTML = "";
-
     // récupérer les devoirs
     let homeworks = await StorageManager.getItemAsync("homeworks");
     try {
@@ -574,7 +567,10 @@ async function renderHomeworks() {
     // Nettoyage des devoirs expirés
     let validHomeworks = await cleanupExpiredHomeworks(homeworks);
 
-    validHomeworks = sortHomeworksByDate(validHomeworks); 
+    validHomeworks = sortHomeworksByDate(validHomeworks);
+
+    // reset du container avant de réinsérer
+    container.innerHTML = "";
 
     if (validHomeworks.length === 0) {
         container.insertAdjacentHTML("beforeend", `<p class="centered">Aucun devoir pour l'instant.</p>`);

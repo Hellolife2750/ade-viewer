@@ -1,12 +1,15 @@
 # 📅 ADE Viewer
 
-**Une app mobile simple et rapide pour consulter ton emploi du temps ADE sans te prendre la tête.**  
-Développée avec Cordova pour Android (et bientôt iOS ?), open source et contributive.
+**Une app Android simple et rapide pour consulter ton emploi du temps ADE**
 
-![screenshot](screenshots/home.png)
-> *Aperçu de l'écran d'accueil - simple, rapide, efficace*
+<p>
+  <img src="screenshots/next-courses.jpg" alt="Capture écran page accueil" width="200">
+  <img src="screenshots/day-view.jpg" alt="Capture écran vue jour" width="200">
+  <img src="screenshots/homeworks.jpg" alt="Capture écran devoirs" width="200">
+</p>
 
 ---
+
 
 ## 🚀 Fonctionnalités
 
@@ -21,13 +24,12 @@ Développée avec Cordova pour Android (et bientôt iOS ?), open source et contr
 
 ## 📦 Téléchargement
 
-Tu veux juste **utiliser l'app** ?  
-Rien de plus simple !
-
 1. 📲 Télécharge la dernière version stable ici : [⬇️ Releases GitHub](https://github.com/<ton-utilisateur>/<repo>/releases)
 2. 🔐 Active l'installation d'apps de sources inconnues sur ton téléphone
 3. 📥 Installe l’APK
-4. ✅ Profite de ton emploi du temps ADE sans passer par l'UI web infâme
+4. ✅ Ouvre l'app, et entre le lien de ton emploi du temps généré via la page ADE
+
+<img src="screenshots/export_ade.jpg" alt="générer lien ADE" width="500">
 
 ---
 
@@ -106,15 +108,12 @@ Sur PC, ouvrir `chrome://inspect`, sélectionner l'appareil filaire connecté. l
 
 ## 🧩 TODO & Bugs
 
-- désactiver l'opti de la batterie
-- rajouter les taches
-- enlever cours inutiles
 - ajouter un widget montrant le prochain cours
 
 ## 👤 Auteur
 
 - Auteur : Clément
-- Dernière modification : sept 2025
+- Dernière modification : oct 2025
 - Version : 1.0
 - Technos : CordovaJS + Node
 - Dépôt Git: https://github.com/Hellolife2750/ade-viewer
