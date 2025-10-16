@@ -323,7 +323,9 @@ async function fetchIcsJob() {
 }
 
 function onDeviceReady() {
-    setupConsoleRedirect();
+    if (DEBUG){
+        setupConsoleRedirect();
+    }
 
     initEvents();
 

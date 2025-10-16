@@ -40,6 +40,9 @@ RUN cordova telemetry off
 # SASS Compiler
 RUN npm install -g sass
 
+# Live reload cordova browser
+RUN apt-get update && apt-get install -y inotify-tools
+
 # Gradle
 RUN apt -qq install -y unzip
 RUN curl -so /tmp/gradle-${GRADLE_VERSION}-bin.zip https://downloads.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip && \

@@ -53,13 +53,38 @@ cd docker
 docker build -t cordova-dev -f Dockerfile .
 cd ..
 
-# 2. Lancer l’environnement de dev Cordova
+# 2. Lancer un environnement de dev Cordova (neutre)
 docker run -it --rm \
     --device /dev/bus/usb \
     -v "$(pwd):/app" \
     -v "$(pwd)/.gradle-cache:/opt/gradle-8.7" \
     -p 8000:8000 cordova-dev \
     bash -c 'cd /app && bash'
+
+# 2.1 Environnement all-in-one
+docker run -it --rm \
+  --device /dev/bus/usb \
+  -v "$(pwd):/app" \
+  -v "$(pwd)/.gradle-cache:/opt/gradle-8.7" \
+  -p 8000:8000 \
+  -p 3000:3000 \
+  cordova-dev bash -c '
+    cd /app
+    node dev-proxy/server.js &
+    npm run sass:watch &
+    cordova run browser &
+    exec bash --rcfile <(echo "history -s \"cordova run browser\"")
+  '
+
+# 2.3 Environnement all-in-one hot reload
+docker run -it --rm \
+  --device /dev/bus/usb \
+  -v "$(pwd):/app" \
+  -v "$(pwd)/.gradle-cache:/opt/gradle-8.7" \
+  -p 8000:8000 \
+  -p 3000:3000 \
+  cordova-dev \
+  /bin/bash /app/docker/dev.sh
 
 # 3. Dans le conteneur, pour compiler le SCSS
 npm run sass:watch

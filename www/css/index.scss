@@ -4,6 +4,9 @@
     font-family: "Helvetica Neue", Arial, sans-serif;
     padding: 0;
     margin: 0;
+    user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
 }
 
 body {
@@ -224,6 +227,10 @@ body {
                     button {
                         font-size: 1.5rem;
                         padding: .5rem;
+
+                        &:active{
+                            background-color: rgb(231, 230, 230);
+                        }
                     }
                 }
 
