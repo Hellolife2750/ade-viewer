@@ -1,13 +1,15 @@
-/* style épuré façon hyperplanning */
-* {
-    box-sizing: border-box;
-    font-family: "Helvetica Neue", Arial, sans-serif;
-    padding: 0;
-    margin: 0;
-    user-select: none;
-    -webkit-user-select: none;
-    -ms-user-select: none;
-}
+@import "./defaults/variables";
+@import "./defaults/fonts";
+@import "./defaults/mixins";
+@import "./defaults/functions";
+@import "./defaults/animations";
+@import "./defaults/reset";
+@import "./defaults/defaults";
+
+@import "./components/header";
+@import "./components/footer";
+@import "./components/loader";
+
 
 body {
     margin: 0;
@@ -26,36 +28,8 @@ body {
             border: none;
         }
 
-        header {
-            height: 9vh;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 5px 5vw;
-            // background: linear-gradient(135deg, #c20f6bff, #f6b863ff);
-            background-color: #722241ff;
-            color: #fff;
-            border-radius: 0 0 15px 15px;
-
-            .header-logo {
-                height: 95%;
-            }
-
-            .menu-buttons {
-                height: 100%;
-                display: flex;
-                align-items: center;
-
-                #toggle-home-view {
-                    height: 50%;
-                }
-            }
-
-        }
-
         main {
-            display: flex;
-            justify-content: center;
+            @include flex($justify : center);
             padding-bottom: 3rem;
 
             #home-view {
@@ -70,9 +44,7 @@ body {
                 }
 
                 #next-events-container {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: flex-end;
+                    @include flex($direction: column, $align: flex-end);
                     min-width: 90vw;
                 }
 
@@ -83,8 +55,7 @@ body {
 
                 #next-events,
                 #next-homeworks {
-                    display: flex;
-                    flex-direction: column;
+                    @include flex(column);
                     margin: 0 auto;
                     width: 97%;
                     padding: 1rem;
@@ -94,14 +65,13 @@ body {
                 #next-events {
                     .next-events-title {
                         text-align: center;
-                        color: #0b4e50ff;
+                        color: map-get($colors, "teal-dark");
                         margin-bottom: 1rem;
                         font-weight: 700;
                     }
 
                     .day-events {
-                        display: flex;
-                        flex-direction: column;
+                        @include flex(column);
 
                         .day-title {
                             margin-bottom: 1rem;
@@ -115,14 +85,13 @@ body {
 
                     .next-homeworks-title {
                         text-align: center;
-                        color: #42206aff;
+                        color: map-get($colors, "purple-dark");;
                         margin-bottom: .5rem;
                         font-weight: 700;
                     }
 
                     #homeworks-container {
-                        display: flex;
-                        flex-direction: column;
+                        @include flex(column);
                         gap: 1rem;
                         margin-top: 2rem;
 
@@ -131,14 +100,12 @@ body {
                         }
 
                         .day-homeworks {
-                            display: flex;
-                            flex-direction: column;
-                            align-items: flex-start;
+                            @include flex(column, $align: flex-start);
                             gap: 0.5rem;
 
                             .day-title {
                                 display: inline;
-                                background-color: #ebdafeff;
+                                background-color: map-get($colors, "purple-light");;
                                 border-radius: 0 2rem 2rem 0;
                                 padding: .5rem;
 
@@ -148,15 +115,12 @@ body {
                             }
 
                             .homework {
-                                display: flex;
-                                flex-direction: column;
+                                @include flex(column);
                                 gap: 0.5rem;
                                 width: 100%;
 
                                 .header {
-                                    display: flex;
-                                    justify-content: space-between;
-                                    align-items: center;
+                                    @include flex($justify: space-between, $align: center);
 
                                     .course-name {
                                         font-weight: 700;
@@ -169,7 +133,7 @@ body {
                                         border-radius: 0 0 0 5px;
 
                                         &.is-mad {
-                                            background-color: #ebdafeff;
+                                            background-color: map-get($colors, "purple-light");;
                                         }
 
                                         &::after {
@@ -191,8 +155,7 @@ body {
                                 }
 
                                 .footer {
-                                    display: flex;
-                                    align-items: center;
+                                    @include flex($align: center);
                                     gap: 0.5rem;
                                     align-self: flex-end;
                                 }
@@ -216,9 +179,7 @@ body {
                 }
 
                 .navigator-bar {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
+                    @include flex($justify: space-between, $align: center);
                     margin: 1rem auto;
                     border: 1px solid lightgray;
                     border-radius: 3px;
@@ -237,6 +198,22 @@ body {
                 #week-events-container {
                     width: 100%;
                     margin: 0 auto;
+
+                    .weather-container{
+                        @include flex($justify: space-between, $align: center);
+                        margin: 1rem 0;
+
+                        .weather-details{
+                            @include flex($align: center);
+                            gap: .5rem;
+                            font-size: .8rem;
+    
+                            .weather-icon{
+                                width: 1rem;
+                            }
+                        }
+                    }
+                    
                 }
             }
 
@@ -246,46 +223,45 @@ body {
                     border-radius: 10px;
 
                     margin-left: .5rem;
-                    display: flex;
+                    @include flex;
 
                     &:not(.empty) {
                         margin-bottom: 1rem;
                     }
 
-                    /*touch-action: pan-y;
-                    évite conflits scroll
-                    user-select: none;
-                    cursor: grab;*/
-
                     transition: all .3s ease-in-out;
+
+                    .blacklisted-event-container{
+                        @include flex($align: center, $gap:.5rem);
+                        font-size: .8rem;
+
+                        .blacklist-event{
+                            height: 1.3rem;
+                        }
+                    }
                 }
 
                 .details {
-                    display: flex;
+                    @include flex;
                 }
 
                 .times {
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: space-between;
+                    @include flex(column, $justify: space-between);
                     margin: .3rem 0;
                 }
 
                 .seperator {
                     height: 100%;
-                    min-height: 15vh;
+                    min-height: 13vh; /*15vh*/
                     width: 8px; /*.5rem*/
                     min-width: 8px;
                     border-radius: 2rem;
-                    background-color: crimson;
                     margin-right: .5rem;
                     margin-left: .5rem;
                 }
 
                 .details-text {
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: flex-start;
+                    @include flex(column, $justify: flex-start);
                     margin: .3rem 0;
 
                     .title {
@@ -304,11 +280,10 @@ body {
                     }
 
                     .badges-container {
-                        display: flex;
+                        @include flex;
                         gap: 5px;
-                        // margin-bottom: 5px;
 
-                        .event-badge,.add-homework {
+                        .event-badge,.add-homework, .blacklist-event {
                             height: 1.5rem;
                         }
                     }
@@ -323,39 +298,6 @@ body {
             }
         }
 
-        footer {
-            color: white;
-            text-align: center;
-            font-size: .8rem;
-            margin-top: 2rem;
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            padding: 7px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-
-            .left,
-            .right {
-                display: flex;
-                align-items: center;
-                gap: 5px;
-
-                #last-update-label {
-                    background-color: #c6c6c6ff;
-                    padding: 5px 10px;
-                    border-radius: 1rem;
-                }
-            }
-
-            .action-btn {
-                height: 1.7rem;
-            }
-
-        }
-
         #change-address-modal {
             width: 100vw;
             height: 100vh;
@@ -363,10 +305,9 @@ body {
             position: fixed;
             top: 0;
             left: 0;
+            @include flex($justify: center, $align: center);
             display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
+            z-index: z(change-address-modal);
 
             .modal-content {
                 width: 90%;
@@ -374,10 +315,7 @@ body {
                 padding: 2rem;
                 border-radius: 8px;
                 box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-                display: flex;
-                flex-direction: column;
-                justify-content: space-between;
-                align-items: center;
+                @include flex(column, space-between, center);
                 position: relative;
 
                 #close-address-modal-btn {
@@ -392,37 +330,34 @@ body {
                     text-align: center;
                     font-size: 1.2rem;
                     font-weight: bold;
-                    color: #722241ff;
+                    color: $first-color;
                 }
 
                 .seperator {
                     height: 4px;
                     width: 50%;
-                    background-color: #722241ff;
+                    background-color: $first-color;
                     margin: 1rem 0;
                     border-radius: 2rem;
                 }
 
                 .mediums-container {
                     margin: 2rem auto;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
+                    @include flex(column, $align: center);
                     width: 100%;
 
                     #open-scanner-btn {
-                        border: 2px solid #722241ff;
+                        border: 2px solid $first-color;
                         background-color: #fff;
                         padding: 10px 20px;
                         border-radius: 2rem;
                         font-weight: bold;
-                        color: #722241ff;
+                        color: $first-color;
                         width: 100%;
 
                         &:focus {
-                            background-color: #722241ff;
+                            background-color: $first-color;
                             color: #fff;
-                            // transform: scale(0.95);
                         }
                     }
 
@@ -433,7 +368,7 @@ body {
 
                     #address-input {
                         padding: 10px;
-                        border: 2px solid #722241ff;
+                        border: 2px solid $first-color;
                         border-radius: 2rem;
                         text-align: center;
                         outline: none;
@@ -443,7 +378,7 @@ body {
 
                 #save-address-btn {
                     background-color: #edd5dbff;
-                    color: #722241ff;
+                    color: $first-color;
                     padding: 10px 20px;
                     border: none;
                     padding: 10px 20px;
@@ -460,56 +395,5 @@ body {
             width: 70vw;
             height: 20vh;
         }
-
-        #loader-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-
-            #loader {
-                border: 8px solid #f3f3f3;
-                border-top: 8px solid #722241ff;
-                border-radius: 50%;
-                width: 60px;
-                height: 60px;
-                animation: spin 1s linear infinite;
-            }
-        }
-    }
-
-    .clickable:active {
-        scale: 0.9;
-    }
-}
-
-
-@keyframes popScale {
-    0% {
-        transform: scale(0.5);
-    }
-
-    50% {
-        transform: scale(1.05);
-    }
-
-    100% {
-        transform: scale(1);
-    }
-}
-
-@keyframes spin {
-    0% {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
     }
 }

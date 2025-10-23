@@ -2,6 +2,7 @@ import { StorageManager } from './storage_manager.js';
 import { RequestsManager } from './requests_manager.js';
 import { ICSParser } from './ics_parser.js';
 import { StyleFormatter } from './style_formatter.js';
+import { WeatherManager } from './weather_manager.js';
 
 
 const DEBUG = false;
@@ -10,6 +11,7 @@ const UPDATE_THRESHOLD_HOURS = 30;
 
 let ICS_URL;
 let eventsCache = [];
+let blacklistedEventsCache = [];
 
 document.addEventListener('deviceready', onDeviceReady, false);
 
@@ -329,12 +331,13 @@ function onDeviceReady() {
 
     initEvents();
 
-    StorageManager.getItem("ics_url", function (value) {
+    StorageManager.getItem("ics_url", async function (value) {
         if (value === null) {
             showChangeAddressModal(false);
         } else {
             ICS_URL = value;
             document.getElementById("address-input").value = value;
+            blacklistedEventsCache = await getEventsBlacklist();
             loadICS();
             refreshIfOutdated();
         }
@@ -416,6 +419,11 @@ async function getIcsUrl() {
     return url;
 }
 
+// afficher un message toast
+function showToast(message){
+    window.plugins.toast.showShortBottom(message);
+}
+
 // récupère le fichier ICS depuis le serveur et le sauvegarde en local
 async function fetchICS({failSilently = false} = {}) {
     try {
@@ -424,12 +432,16 @@ async function fetchICS({failSilently = false} = {}) {
 
         await FileManager.saveIcsFile(response.data);
         StorageManager.setItem("last_update", new Date().toISOString());
+
+        showToast("✅ Calendrier mis à jour");
+
         return response.data; // <- renvoyer le texte directement
     } catch (err) {
         console.error("❌ Erreur:", err);
         if (!failSilently){
             alert("Erreur chargement ICS: " + err.error || err);
         }
+        showToast("❌ Impossible de mettre à jour le calendrier");
         return ""; // ou throw err si tu veux propager l'erreur
     }
 }
@@ -461,7 +473,9 @@ async function renderNextCourses() {
     container.innerHTML = ``;
 
     const now = new Date();
-    const upcoming = eventsCache.filter(e => e.end > now).slice(0, 3);
+    const upcoming = eventsCache
+        .filter(e => e.end > now && !isEventBlacklisted(e.title, new Date(e.start), blacklistedEventsCache))
+        .slice(0, 3);
     console.log("Prochains cours:", upcoming.length);
 
     // groupement par jour
@@ -508,6 +522,8 @@ async function renderNextCourses() {
 
     if (upcoming.length === 0) {
         container.innerHTML += `<p>Aucun cours à venir</p>`;
+    }else{
+        startCountdown(upcoming[0].start);
     }
 
     // dernière date de MAJ
@@ -522,6 +538,60 @@ async function renderNextCourses() {
     });
 
     await renderHomeworks();
+}
+
+/**
+ * Met à jour un compte à rebours vers une date donnée.
+ * Masque l'élément si l'événement est dans plus de 24h.
+ * @param {Date} targetDate - La date/heure de l’événement à venir.
+ */
+function startCountdown(targetDate) {
+    const timerElement = document.getElementById("next-course-timer");
+
+    if (!timerElement) {
+        console.warn("[Countdown] Élément #next-course-timer introuvable.");
+        return;
+    }
+
+    const ONE_MINUTE = 60 * 1000;
+    const ONE_DAY = 24 * 60 * 60 * 1000;
+    let interval = null;
+
+    function updateTimer() {
+        const now = new Date();
+        const diffMs = targetDate - now;
+
+        // Si plus de 24h → on masque le timer
+        if (diffMs > ONE_DAY) {
+            timerElement.style.display = "none";
+            clearInterval(interval);
+            return;
+        }
+
+        // Sinon, on affiche le timer
+        timerElement.style.display = "block";
+
+        if (diffMs <= 0) {
+            timerElement.textContent = "EN COURS";
+            clearInterval(interval);
+            return;
+        }
+
+        const totalMinutes = Math.floor(diffMs / 1000 / 60);
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+
+        const hh = String(hours).padStart(2, "0");
+        const mm = String(minutes).padStart(2, "0");
+
+        timerElement.textContent = `${hh}:${mm}`;
+    }
+
+    // Mise à jour immédiate
+    updateTimer();
+
+    // Puis toutes les minutes
+    interval = setInterval(updateTimer, ONE_MINUTE);
 }
 
 // supprimer les devoirs expirés du stockage
@@ -643,10 +713,9 @@ function attachHomeworksListeners(){
 }
 
 
-// Mes grands morts, gestion de la vue "week-view"
+// Gestion de la vue "week-view"
 let eventDays = []; // liste des jours (Date sans heure)
 let currentDayIndex = 0;
-
 
 // construit la liste des jours uniques avec événements
 function buildEventDays() {
@@ -668,7 +737,7 @@ function isCM(location) {
 }
 
 // affiche les événements du jour courant
-function renderDayView(index) {
+async function renderDayView(index) {
     if (eventDays.length === 0) return;
     if (index < 0 || index >= eventDays.length) return;
 
@@ -687,6 +756,7 @@ function renderDayView(index) {
         StyleFormatter.normalizeDate(e.start).getTime() === day.getTime()
     );
 
+    // Afficher les événements du jour
     for (let ev of events) {
         const startTime = StyleFormatter.formatHeure(ev.start);
 
@@ -695,7 +765,7 @@ function renderDayView(index) {
         const professorName = (IS_ENSEIRB) ? StyleFormatter.extractProfessor(ev.notes) : "";
 
         let eventHeight = (ev.end - ev.start) / (1000 * 60 * 60);
-
+        
         let color = StyleFormatter.stringToColor(ev.title);
 
         // événements sans lieu, généralement cours alternatifs
@@ -705,24 +775,35 @@ function renderDayView(index) {
         div.setAttribute("data-course-name", ev.title);
         div.setAttribute("data-course-start", ev.start.toISOString());
         div.className = "event";
-        div.innerHTML = `
-            <div class="times">
-                <p>${startTime}</p>
-                <p>${endTime}</p>
-            </div>
-            <div class="details">
-                <div class="seperator" style="background-color: ${color}; min-height: ${eventHeight * 8}vh;"></div>
-                <div class="details-text">
-                    <p class="title">${ev.title}</p>
-                    <p class="location">${ev.location}</p>
-                    <p class="professor">${professorName}</p>
-                    <div class="badges-container">
-                        ${isCM(ev.location) ? '<img src="res/img/icons/amphi.svg" class="event-badge" title="event\'s badge" draggable="false"/>' : ''}
-                        <img src="res/img/icons/pencil.svg" class="add-homework" title="add homework button" draggable="false"/>
+
+        if (isEventBlacklisted(ev.title, ev.start, blacklistedEventsCache)){
+            div.innerHTML = `
+                <div class="blacklisted-event-container">
+                    <img src="res/img/icons/eye-slash.svg" class="blacklist-event" title="unblacklist event button" draggable="false"/>
+                    <p>...</p>
+                </div>
+            `;
+        }else{
+            div.innerHTML = `
+                <div class="times">
+                    <p>${startTime}</p>
+                    <p>${endTime}</p>
+                </div>
+                <div class="details">
+                    <div class="seperator" style="background-color: ${color}; min-height: ${eventHeight * 8}vh;"></div>
+                    <div class="details-text">
+                        <p class="title">${ev.title}</p>
+                        <p class="location">${ev.location}</p>
+                        <p class="professor">${professorName}</p>
+                        <div class="badges-container">
+                            ${isCM(ev.location) ? '<img src="res/img/icons/amphi.svg" class="event-badge" title="event\'s badge" draggable="false"/>' : ''}
+                            <img src="res/img/icons/eye.svg" class="blacklist-event" title="blacklist event button" draggable="false"/>
+                            <img src="res/img/icons/pencil.svg" class="add-homework" title="add homework button" draggable="false"/>
+                        </div>
                     </div>
                 </div>
-            </div>
-        `;
+            `;
+        }
         container.appendChild(div);
     }
 
@@ -730,7 +811,29 @@ function renderDayView(index) {
         container.innerHTML = "<p>Aucun événement ce jour</p>";
     }
 
+    // Si des événements existent, on récup la météo
+    /*if (events.length > 0) {
+        const weatherContainer = document.createElement("div");
+        weatherContainer.classList.add("weather-container");
+
+        // Récupère les deux blocs HTML météo en parallèle
+        Promise.all([
+            WeatherManager.getWeatherDetailsHTML(events[0].start),
+            WeatherManager.getWeatherDetailsHTML(events[events.length - 1].end)
+        ]).then(([startHtml, endHtml]) => {
+            // Ajoute les deux blocs dans l'ordre dans le weatherContainer
+            weatherContainer.insertAdjacentHTML("beforeend", startHtml);
+            weatherContainer.insertAdjacentHTML("beforeend", endHtml);
+
+            // Enfin, ajoute le weatherContainer au container principal
+            if (startHtml !== "??" && endHtml !== "??"){
+                container.appendChild(weatherContainer, container.lastChild); // insertBefore, firstChild
+            }
+        });
+    }*/
+
     addHomeworkEvents();
+    blacklistEventEvents();
 }
 
 // navigation jour précédent / suivant
@@ -809,6 +912,7 @@ async function addHomeworkFromEvent(eventDiv) {
     if (existingHomework) {
         // Modifier l'existant
         existingHomework.homework = homeworkText;
+        showToast("✅ Devoir modifié");
         console.log("✏️ Devoir modifié :", existingHomework);
     } else {
         // Créer un nouvel objet
@@ -820,6 +924,7 @@ async function addHomeworkFromEvent(eventDiv) {
             date: courseDate
         };
         homeworks.push(newHomework);
+        showToast("✅ Devoir ajouté");
         console.log("✅ Devoir ajouté :", newHomework);
     }
 
@@ -836,6 +941,84 @@ function addHomeworkEvents() {
                 e.stopPropagation(); // évite les effets de bord si d'autres événements sont liés à l'event
                 addHomeworkFromEvent(eventDiv).then(() => {
                     renderHomeworks();
+                });
+            });
+        }
+    });
+}
+
+// renvoie si un event est blacklisté (nom_cours, horaire) en fonction de la blacklist
+function isEventBlacklisted(courseName, courseDateObj, eventsBlacklist) {
+    const weekday = courseDateObj.getDay();
+    const hour = courseDateObj.getHours();
+    const minute = courseDateObj.getMinutes();
+
+    return eventsBlacklist.some(ev =>
+        ev.course === courseName &&
+        ev.weekday === weekday &&
+        ev.hour === hour &&
+        ev.minute === minute
+    );
+}
+
+async function getEventsBlacklist() {
+    let list = await StorageManager.getItemAsync("events-blacklist");
+    try {
+        return list ? JSON.parse(list) : [];
+    } catch (e) {
+        console.warn("[StorageManager] Evénements blacklistés corrompus, reset.");
+        return [];
+    }
+}
+
+async function blacklistEvent(eventDiv) {
+    const courseName = eventDiv.dataset.courseName;
+    const courseDate = eventDiv.dataset.courseStart;
+    const courseDateObj = new Date(courseDate);
+
+    const weekday = courseDateObj.getDay();
+    const hour = courseDateObj.getHours();
+    const minute = courseDateObj.getMinutes();
+
+    const index = blacklistedEventsCache.findIndex(ev =>
+        ev.course === courseName &&
+        ev.weekday === weekday &&
+        ev.hour === hour &&
+        ev.minute === minute
+    );
+
+    if (index !== -1) {
+        console.log("🗑 Suppression de l'event blacklisté :", blacklistedEventsCache[index]);
+        showToast("✅ Cours retiré de la blacklist");
+        blacklistedEventsCache.splice(index, 1);
+    } else {
+        const newBlacklist = {
+            id: generateUUID(),
+            course: courseName,
+            weekday,
+            hour,
+            minute
+        };
+        blacklistedEventsCache.push(newBlacklist);
+        console.log("✅ Event blacklisté ajouté :", newBlacklist);
+        showToast("✅ Cours blacklisté");
+    }
+
+    // Sauvegarde
+    await StorageManager.setItem("events-blacklist", JSON.stringify(blacklistedEventsCache));
+}
+
+// binder les évents bouton blacklister event
+function blacklistEventEvents() {
+    document.querySelectorAll('#week-view .event').forEach(eventDiv => {
+        const blacklistButton = eventDiv.querySelector('.blacklist-event');
+
+        if (blacklistButton) {
+            blacklistButton.addEventListener('click', (e) => {
+                e.stopPropagation(); // évite les effets de bord si d'autres événements sont liés à l'event
+                blacklistEvent(eventDiv).then(() => {
+                    renderDayView(currentDayIndex);
+                    renderNextCourses();
                 });
             });
         }

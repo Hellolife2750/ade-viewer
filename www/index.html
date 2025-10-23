@@ -9,7 +9,7 @@
                style-src 'self' 'unsafe-inline';
                media-src *;
                img-src 'self' data: content:;
-               connect-src 'self' https://adeapp.bordeaux-inp.fr http://localhost:3000;">
+               connect-src 'self' https://adeapp.bordeaux-inp.fr http://localhost:3000 https://api.openweathermap.org;">
 
     <title>ADE Viewer</title>
     <link rel="stylesheet" href="css/index.css" />
@@ -19,6 +19,7 @@
     <div id="app">
         <header>
             <img class="header-logo" src="res/img/icon.svg" alt="ADE logo" draggable="false">
+            <p id="next-course-timer"></p>
             <div class="menu-buttons">
                 <img id="toggle-home-view" class="clickable" src="res/img/icons/home.svg" alt="home icon" draggable="false">
             </div>

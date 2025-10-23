@@ -1,0 +1,28 @@
+footer {
+    color: white;
+    text-align: center;
+    font-size: .8rem;
+    margin-top: 2rem;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    padding: 7px;
+    @include flex($justify: space-between, $align: center);
+    width: 100%;
+
+    .left,
+    .right {
+        @include flex($align: center);
+        gap: 5px;
+
+        #last-update-label {
+            background-color: #c6c6c6ff;
+            padding: 5px 10px;
+            border-radius: 1rem;
+        }
+    }
+
+    .action-btn {
+        height: 1.7rem;
+    }
+}

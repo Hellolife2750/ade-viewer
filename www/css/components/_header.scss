@@ -1,0 +1,34 @@
+header {
+    height: 9vh;
+    @include flex(row, space-between, center);
+    padding: 5px 5vw;
+    background-color: $first-color;
+    // background: linear-gradient(135deg, #5e1c37, #722241, #8a3057);
+    background: linear-gradient(135deg, #722241, #c8336f);
+    background-size: 150% 150%;
+    animation: gradientMove 12s ease infinite;
+    // background: linear-gradient(135deg, #c20f6bff, #f6b863ff);
+
+    color: #fff;
+    border-radius: 0 0 15px 15px;
+
+    .header-logo {
+        height: 95%;
+    }
+
+    #next-course-timer{
+        font-size: 1.5rem;
+        font-family: 'DSDigital', sans-serif;
+        display: none;
+    }
+
+    .menu-buttons {
+        height: 100%;
+        @include flex($align : center);
+
+        #toggle-home-view {
+            height: 50%;
+        }
+    }
+
+}

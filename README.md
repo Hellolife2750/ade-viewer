@@ -113,6 +113,10 @@ docker run --rm -it \
   -e KEY_PASS='<passwd>' \
   cordova-dev \
   bash -c '/app/docker/build_release.sh'
+
+# OU
+
+./docker/build_release_cmd.sh <key_pass>
 ```
 
 => Pour build une release, tu dois renseigner un keystore.
