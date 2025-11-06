@@ -1,5 +1,5 @@
 export class WeatherManager {
-    static apiKey = "6495cecbd5e2bccb40912b789586f196";
+    static apiKey = "XXX";
     static city = "Bordeaux,fr";
 
     // Dictionnaire pour mapper la condition 'main' à des icônes personnalisées
