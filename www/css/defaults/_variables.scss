@@ -4,10 +4,12 @@ $colors: (
   "purple-light": #ebdafeff,
   "purple-dark": #42206aff,
   "gray-light": #e2e2e2ff,
+  "gray-selection": #E7E6E6,
   "teal-dark": #0b4e50ff,
 );
 
 $z-index: (
+  datepicker: 10,
   change-address-modal: 100,
   loader-container: 101,
 );

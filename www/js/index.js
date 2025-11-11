@@ -177,7 +177,7 @@ function showChangeAddressModal(can_close = true) {
 
 // binder les boutons / événements au clic
 function initEvents() {
-    document.getElementById("toggle-week-view").addEventListener("click", () => {
+    document.getElementById("next-events-container").addEventListener("click", () => {
         // toggleView(["week-view"], ["home-view"]);
         toggleActiveView(["week-view"], ["home-view"]);
 
@@ -1025,3 +1025,173 @@ function blacklistEventEvents() {
     });
 }
 
+// === DATEPICKER DU ROI DES CLOCHES — VERSION ALIGNÉE STABLE ===
+
+let datepickerState = {
+  visible: false,
+  currentMonth: null,
+  currentYear: null,
+};
+
+// Bouton d'ouverture
+document.getElementById("open-calendar-btn").addEventListener("click", (e) => {
+  e.stopPropagation();
+  toggleDatepicker();
+});
+
+// Fermer en cliquant dehors
+document.addEventListener("click", (e) => {
+  const picker = document.getElementById("datepicker");
+  if (!picker) return;
+  if (datepickerState.visible && !picker.contains(e.target) && e.target.id !== "open-calendar-btn") {
+    toggleDatepicker(false);
+  }
+});
+
+function toggleDatepicker(show = !datepickerState.visible) {
+  const picker = document.getElementById("datepicker");
+  if (!picker) return;
+
+  datepickerState.visible = show;
+  picker.style.display = show ? "block" : "none";
+  picker.classList.toggle("active", show);
+
+  if (show) {
+    const currentDate = eventDays.length > 0 ? eventDays[currentDayIndex] : new Date();
+    datepickerState.currentMonth = currentDate.getMonth();
+    datepickerState.currentYear = currentDate.getFullYear();
+    buildDatepicker();
+  }
+}
+
+function buildDatepicker() {
+  const picker = document.getElementById("datepicker");
+  if (!picker) return;
+
+  const tbody = picker.querySelector("tbody");
+  const label = picker.querySelector(".month-label");
+  const prevBtn = picker.querySelector(".preview-month-btn");
+  const nextBtn = picker.querySelector(".next-month-btn");
+
+  const month = datepickerState.currentMonth;
+  const year = datepickerState.currentYear;
+
+  // Nom du mois
+  const monthName = new Date(year, month).toLocaleDateString("fr-FR", {
+    month: "long",
+    year: "numeric",
+  });
+  label.textContent = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+
+  // Reset
+  tbody.innerHTML = "";
+
+  // Premier jour du mois
+  const firstDay = new Date(year, month, 1);
+  const firstDayWeek = (firstDay.getDay() + 6) % 7; // Lundi = 0
+  const firstVisible = new Date(year, month, 1 - firstDayWeek);
+
+  for (let week = 0; week < 5; week++) {
+    const tr = document.createElement("tr");
+
+    for (let day = 0; day < 6; day++) {
+      const td = document.createElement("td");
+      const currentDate = new Date(firstVisible);
+      currentDate.setDate(firstVisible.getDate() + week * 7 + day);
+
+      const dayNum = currentDate.getDate();
+      td.textContent = dayNum;
+
+      const normalized = StyleFormatter.normalizeDate(currentDate);
+      const inCurrentMonth = currentDate.getMonth() === month;
+
+      // Tous les événements du jour
+      const events = eventsCache.filter(e =>
+        StyleFormatter.normalizeDate(e.start).getTime() === normalized.getTime()
+      );
+
+      // Durée totale en heures
+      const totalHours = events.reduce((acc, ev) => {
+        const start = new Date(ev.start);
+        const end = new Date(ev.end);
+        const diff = (end - start) / (1000 * 60 * 60);
+        return acc + diff;
+      }, 0);
+
+      const hasCourse = totalHours > 0;
+      const isSelected =
+        normalized.getTime() ===
+        StyleFormatter.normalizeDate(eventDays[currentDayIndex] ?? new Date()).getTime();
+
+      // Classes de base
+      td.classList.toggle("disabled", !inCurrentMonth || !hasCourse);
+      td.classList.toggle("active", inCurrentMonth && hasCourse);
+      td.classList.toggle("selected", isSelected);
+
+      // 🔵 Gestion de la couleur dynamique (de 0h à 8h)
+    if (inCurrentMonth && hasCourse && !isSelected) {
+    const ratio = Math.min(totalHours / 8, 1);
+
+    // Palette adoucie : clair → moyen pastel
+    const base = { r: 219, g: 234, b: 254 }; // #dbeafe (4h)
+    const dark = { r: 147, g: 197, b: 253 }; // #93c5fd (8h, doux)
+    const light = { r: 240, g: 248, b: 255 }; // #f0f8ff (1h ou moins, très léger)
+
+    // On fait d’abord tendre vers "base" à mi-parcours, puis vers "dark"
+    let r, g, b;
+    if (ratio < 0.5) {
+        const t = ratio * 2; // 0 → 0.5 => interpolation light → base
+        r = Math.round(light.r + (base.r - light.r) * t);
+        g = Math.round(light.g + (base.g - light.g) * t);
+        b = Math.round(light.b + (base.b - light.b) * t);
+    } else {
+        const t = (ratio - 0.5) * 2; // 0.5 → 1 => interpolation base → dark
+        r = Math.round(base.r + (dark.r - base.r) * t);
+        g = Math.round(base.g + (dark.g - base.g) * t);
+        b = Math.round(base.b + (dark.b - base.b) * t);
+    }
+
+    td.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+    }
+
+      // Clic sur jour actif
+      if (inCurrentMonth && hasCourse) {
+        td.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const idx = eventDays.findIndex(d => d.getTime() === normalized.getTime());
+          if (idx !== -1) {
+            renderDayView(idx);
+            toggleDatepicker(false);
+          }
+        });
+      }
+
+      tr.appendChild(td);
+    }
+
+    tbody.appendChild(tr);
+  }
+
+  // === Navigation mois précédent/suivant ===
+  prevBtn.onclick = (e) => {
+    e.stopPropagation();
+    if (month === 0) {
+      datepickerState.currentMonth = 11;
+      datepickerState.currentYear--;
+    } else {
+      datepickerState.currentMonth--;
+    }
+    buildDatepicker();
+  };
+
+  nextBtn.onclick = (e) => {
+    e.stopPropagation();
+    if (month === 11) {
+      datepickerState.currentMonth = 0;
+      datepickerState.currentYear++;
+    } else {
+      datepickerState.currentMonth++;
+    }
+    buildDatepicker();
+  };
+}

@@ -27,8 +27,9 @@
 
         <main>
             <div id="home-view" class="view active-view">
+
                 <div id="next-events-container">
-                    <img class="open-week-btn clickable"  id="toggle-week-view" src="res/img/icons/arrow-angle.svg" alt="arrow up angle icon" draggable="false">
+                    <!-- <img class="open-week-btn clickable"  id="toggle-week-view" src="res/img/icons/arrow-angle.svg" alt="arrow up angle icon" draggable="false"> -->
 
                     <div id="next-events">
                         <p class="next-events-title">3 prochains cours</p>
@@ -48,9 +49,31 @@
             </div>
 
             <div id="week-view" class="view">
+                <div id="datepicker">
+                    <div class="month-navigator-bar">
+                        <button class="preview-month-btn">&#8249;</button>
+                        <p class="month-label">Novembre 2025</p>
+                        <button class="next-month-btn">&#8250;</button>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>lun.</th>
+                                <th>mar.</th>
+                                <th>mer.</th>
+                                <th>jeu.</th>
+                                <th>ven.</th>
+                                <th>sam.</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+
                 <div class="navigator-bar">
                     <button id="preview-day-btn">&#8249;</button>
-                    <p>lun.16 juin</p>
+                    <p id="open-calendar-btn">lun.16 juin</p>
                     <button id="next-day-btn">&#8250;</button>
                 </div>
 

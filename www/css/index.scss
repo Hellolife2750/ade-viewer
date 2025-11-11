@@ -9,6 +9,7 @@
 @import "./components/header";
 @import "./components/footer";
 @import "./components/loader";
+@import "./components/datepicker";
 
 
 body {
@@ -46,12 +47,25 @@ body {
                 #next-events-container {
                     @include flex($direction: column, $align: flex-end);
                     min-width: 90vw;
+
+                    margin-top: 1.5rem;
+                    transition : all .3s ease-in-out;
+                    &:active {
+                        background-color: map-get($colors, "gray-selection");
+                        scale: .98;
+                        border-radius: 10px;
+
+                        #next-events,
+                        #next-homeworks {
+                            box-shadow: none;
+                        }
+                    }  
                 }
 
-                .open-week-btn {
+                /*.open-week-btn {
                     height: 1.5rem;
                     transform: translateY(50%);
-                }
+                }*/
 
                 #next-events,
                 #next-homeworks {
@@ -168,6 +182,7 @@ body {
 
             #week-view {
                 width: 90%;
+                position: relative;
 
                 &.view {
                     display: none;
@@ -185,12 +200,18 @@ body {
                     border-radius: 3px;
                     width: 100%;
 
+                    #open-calendar-btn:active{
+                        padding: .5rem;
+                        border-radius: 10px;
+                        background-color: map-get($colors, "gray-selection");
+                    }
+
                     button {
                         font-size: 1.5rem;
                         padding: .5rem;
 
                         &:active{
-                            background-color: rgb(231, 230, 230);
+                            background-color: map-get($colors, "gray-selection");
                         }
                     }
                 }
@@ -292,7 +313,7 @@ body {
 
             #week-view {
                 .event:active {
-                    background-color: rgb(231, 230, 230);
+                    background-color: map-get($colors, "gray-selection");
                     scale: .98;
                 }
             }

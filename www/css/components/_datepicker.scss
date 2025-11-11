@@ -1,0 +1,64 @@
+
+#datepicker{
+    position: absolute;
+    display: none;
+    width: 100%;
+    background-color: #f5f6f8;
+    margin-top: 1rem;
+    z-index: z(datepicker);
+    box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px;
+
+
+    &.active{
+        animation: popScale 0.1s cubic-bezier(0.3, 0.56, 0.23, 0.63);
+    }
+
+    .month-navigator-bar {
+        @include flex($justify: space-between, $align: center);
+        margin: 0 auto;
+        border: 1px solid lightgray;
+        border-radius: 3px 3px 0 0; /* border-radius en haut seulement */
+        border-bottom: none;
+
+        button {
+            font-size: 1.5rem;
+            padding: .5rem;
+
+            &:active{
+                background-color: map-get($colors, "gray-selection");
+            }
+        }
+    }
+
+    table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: .5rem;
+        border: 1px solid lightgray;
+        border-radius: 0 0 3px 3px; /* border-radius en bas seulement */
+        border-top: none;
+
+        thead tr {
+            font-weight: bold;
+        }
+        tbody tr td {
+            text-align: center;
+            padding: .5rem;
+            border-radius: 5px;
+
+            &.disabled{
+                color: #aaa;
+            }
+
+            &:not(.disabled){
+                background-color: #dbeafe; // map-get($colors, "gray-selection");
+            }
+
+            &.selected{
+                background-color: #edd5dbff;
+                color: $first-color;
+                font-weight: bold;
+            }
+        }
+    }
+}
