@@ -166,6 +166,12 @@ function toggleActiveView(activeViewId, inactiveViewIds) {
     for (let id of inactiveViewIds) {
         document.getElementById(id).classList.remove("active-view");
     }
+
+    // anim remonte haut de page
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
 }
 
 // afficjer le popup de changement du lien
@@ -216,6 +222,18 @@ function initEvents() {
     document.addEventListener("resume", function () {
         renderNextCourses();
     });
+
+    // retour arrière natif
+    document.addEventListener("backbutton", function (e) {
+        const weekView = document.querySelector('#week-view');
+        if (weekView && weekView.classList.contains('active-view')){
+            e.preventDefault();
+            toggleActiveView(["home-view"], ["week-view"]);
+        }else{
+            navigator.app.exitApp();
+        }
+    }, false);
+
 }
 
 
@@ -797,13 +815,20 @@ async function renderDayView(index) {
                         <p class="professor">${professorName}</p>
                         <div class="badges-container">
                             ${isCM(ev.location) ? '<img src="res/img/icons/amphi.svg" class="event-badge" title="event\'s badge" draggable="false"/>' : ''}
-                            <img src="res/img/icons/eye.svg" class="blacklist-event" title="blacklist event button" draggable="false"/>
-                            <img src="res/img/icons/pencil.svg" class="add-homework" title="add homework button" draggable="false"/>
+                            <img src="res/img/icons/eye.svg" class="blacklist-event expandable-icon hidden" title="blacklist event button" draggable="false"/>
+                            <img src="res/img/icons/pencil.svg" class="add-homework expandable-icon hidden" title="add homework button" draggable="false"/>
                         </div>
                     </div>
                 </div>
             `;
         }
+        
+        div.addEventListener("click", () => {
+            div.querySelectorAll(".expandable-icon").forEach(icon => {
+                icon.classList.toggle("hidden");
+            });
+        });
+
         container.appendChild(div);
     }
 
@@ -1025,7 +1050,7 @@ function blacklistEventEvents() {
     });
 }
 
-// === DATEPICKER DU ROI DES CLOCHES — VERSION ALIGNÉE STABLE ===
+// === DATEPICKER ===
 
 let datepickerState = {
   visible: false,
@@ -1107,7 +1132,7 @@ function buildDatepicker() {
 
       // Tous les événements du jour
       const events = eventsCache.filter(e =>
-        StyleFormatter.normalizeDate(e.start).getTime() === normalized.getTime()
+        StyleFormatter.normalizeDate(e.start).getTime() === normalized.getTime() && !isEventBlacklisted(e.title, e.start, blacklistedEventsCache)
       );
 
       // Durée totale en heures
@@ -1195,3 +1220,67 @@ function buildDatepicker() {
     buildDatepicker();
   };
 }
+
+// === Scroll pour passer de jour en jour === //
+
+let startX = 0;
+let startY = 0;
+let isScrolling = false;
+const swipeThreshold = 50; // distance minimale pour déclencher un swipe
+
+document.addEventListener('touchstart', (e) => {
+    // Ne rien faire si #week-view n'est pas actif
+    const weekView = document.querySelector('#week-view');
+    if (!weekView || !weekView.classList.contains('active-view')) return;
+
+    const touch = e.touches[0];
+    startX = touch.pageX;
+    startY = touch.pageY;
+    isScrolling = false;
+}, false);
+
+document.addEventListener('touchmove', (e) => {
+    const weekView = document.querySelector('#week-view');
+    if (!weekView || !weekView.classList.contains('active-view')) return;
+
+    const touch = e.touches[0];
+    const deltaX = touch.pageX - startX;
+    const deltaY = touch.pageY - startY;
+
+    // si le déplacement horizontal est plus important que le vertical → c’est un swipe horizontal
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        isScrolling = true;
+    }
+}, false);
+
+document.addEventListener('touchend', (e) => {
+    const weekView = document.querySelector('#week-view');
+    if (!weekView || !weekView.classList.contains('active-view')) return;
+
+    const touch = e.changedTouches[0];
+    const deltaX = touch.pageX - startX;
+
+    if (!isScrolling) return; // pas un swipe horizontal
+
+    // Swipe vers la droite → "jour précédent"
+    if (deltaX > swipeThreshold) {
+        if (typeof currentDayIndex !== 'undefined' && typeof renderDayView === 'function') {
+            if (currentDayIndex > 0) {
+                renderDayView(currentDayIndex - 1);
+            }
+        }
+    }
+    // Swipe vers la gauche → "jour suivant"
+    else if (deltaX < -swipeThreshold) {
+        if (typeof currentDayIndex !== 'undefined' && typeof renderDayView === 'function') {
+            if (currentDayIndex < eventDays.length - 1) {
+                renderDayView(currentDayIndex + 1);
+            }
+        }
+    }
+
+    startX = 0;
+    startY = 0;
+    isScrolling = false;
+}, false);
+

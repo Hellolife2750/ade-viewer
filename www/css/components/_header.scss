@@ -1,5 +1,12 @@
 header {
     height: 9vh;
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: z(header);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+
     @include flex(row, space-between, center);
     padding: 5px 5vw;
     background-color: $first-color;

@@ -62,11 +62,6 @@ body {
                     }  
                 }
 
-                /*.open-week-btn {
-                    height: 1.5rem;
-                    transform: translateY(50%);
-                }*/
-
                 #next-events,
                 #next-homeworks {
                     @include flex(column);
@@ -306,6 +301,14 @@ body {
 
                         .event-badge,.add-homework, .blacklist-event {
                             height: 1.5rem;
+                        }
+
+                        .expandable-icon{
+                            animation: popScale 0.15s cubic-bezier(0.3, 0.56, 0.23, 0.63);
+
+                            &.hidden{
+                                display: none;
+                            }
                         }
                     }
                 }
