@@ -6,9 +6,9 @@ if [ $# -ne 1 ]; then
     exit 1
 fi
 
+# -v "$(pwd)/.gradle-cache:/opt/gradle-8.13" \ 
 docker run --rm -it \
   -v "$(pwd):/app" \
-  -v "$(pwd)/.gradle-cache:/opt/gradle-8.7" \
   -e ALIAS_NAME='adeviewer' \
   -e KEYSTORE_PASS="$1" \
   -e KEY_PASS="$1" \

@@ -1,71 +1,50 @@
-#https://hub.docker.com/_/openjdk
+# --- Base ---
 ARG OPENJDK_VERSION=17
 FROM eclipse-temurin:${OPENJDK_VERSION}
 
-# Reference default value
-ARG OPENJDK_VERSION
-#https://github.com/nodesource/distributions/blob/master/README.md
 ARG NODEJS_VERSION=20
-#https://gradle.org/releases/
-ARG GRADLE_VERSION=8.7
-#https://www.npmjs.com/package/cordova?activeTab=versions
+ARG GRADLE_VERSION=8.13
 ARG CORDOVA_VERSION=12.0.0
-#https://developer.android.com/studio#command-tools
 ARG ANDROID_CMDTOOLS_VERSION=11076708
-
 
 LABEL maintainer="Hamdi Fourati <contact@hamdifourati.info>"
 
 WORKDIR /opt/src
 
-ENV JAVA_HOME /opt/java/openjdk/
-ENV ANDROID_SDK_ROOT /usr/local/android-sdk-linux
-ENV ANDROID_HOME $ANDROID_SDK_ROOT
-ENV GRADLE_USER_HOME /opt/gradle
-ENV PATH $PATH:$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$GRADLE_USER_HOME/bin
+# --- Environnements ---
+ENV JAVA_HOME=/opt/java/openjdk
+ENV ANDROID_SDK_ROOT=/usr/local/android-sdk-linux
+ENV ANDROID_HOME=${ANDROID_SDK_ROOT}
+ENV GRADLE_USER_HOME=/opt/gradle
+ENV PATH=$PATH:${ANDROID_SDK_ROOT}/platform-tools:${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:/opt/gradle/bin
 
-# Tools
-RUN apt update && apt -qq install -y git
+# --- Outils de base ---
+RUN apt update && apt install -y git curl unzip inotify-tools android-tools-adb
 
-# NodeJS
-RUN echo https://deb.nodesource.com/setup_${NODEJS_VERSION}.x
-RUN curl -sL https://deb.nodesource.com/setup_${NODEJS_VERSION}.x | bash -
-RUN apt -qq install -y nodejs
+# --- NodeJS ---
+RUN curl -sL https://deb.nodesource.com/setup_${NODEJS_VERSION}.x | bash - && \
+    apt install -y nodejs
 
-# Cordova
-RUN npm i -g cordova@${CORDOVA_VERSION}
-RUN npm install -g cordova-res
-RUN cordova telemetry off
+# --- Cordova ---
+RUN npm i -g cordova@${CORDOVA_VERSION} cordova-res sass && cordova telemetry off
 
-# SASS Compiler
-RUN npm install -g sass
-
-# Live reload cordova browser
-RUN apt-get update && apt-get install -y inotify-tools
-
-# Gradle
-RUN apt -qq install -y unzip
-RUN curl -so /tmp/gradle-${GRADLE_VERSION}-bin.zip https://downloads.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip && \
+# --- Gradle ---
+RUN curl -sLo /tmp/gradle-${GRADLE_VERSION}-bin.zip https://downloads.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip && \
     unzip -qd /opt /tmp/gradle-${GRADLE_VERSION}-bin.zip && \
-    ln -s /opt/gradle-${GRADLE_VERSION} /opt/gradle
+    ln -sfn /opt/gradle-${GRADLE_VERSION} /opt/gradle
 
-# Android
-RUN curl -so /tmp/commandlinetools-linux-${ANDROID_CMDTOOLS_VERSION}_latest.zip https://dl.google.com/android/repository/commandlinetools-linux-${ANDROID_CMDTOOLS_VERSION}_latest.zip && \
-    mkdir -p $ANDROID_SDK_ROOT/cmdline-tools/ && \
-    unzip -qd $ANDROID_SDK_ROOT/cmdline-tools/ /tmp/commandlinetools-linux-${ANDROID_CMDTOOLS_VERSION}_latest.zip && \
-    mv $ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools $ANDROID_SDK_ROOT/cmdline-tools/latest
+# --- Android SDK ---
+RUN curl -sLo /tmp/commandlinetools.zip https://dl.google.com/android/repository/commandlinetools-linux-${ANDROID_CMDTOOLS_VERSION}_latest.zip && \
+    mkdir -p ${ANDROID_SDK_ROOT}/cmdline-tools && \
+    unzip -qd ${ANDROID_SDK_ROOT}/cmdline-tools/ /tmp/commandlinetools.zip && \
+    mv ${ANDROID_SDK_ROOT}/cmdline-tools/cmdline-tools ${ANDROID_SDK_ROOT}/cmdline-tools/latest
 
-
-# Update and accept licences
 COPY android.packages android.packages
-RUN ( sleep 5 && while [ 1 ]; do sleep 1; echo y; done ) | sdkmanager --package_file=android.packages
 
-# 8000: cordova browser, 3000 : npm proxy
-EXPOSE 8000
-EXPOSE 3000
+# --- Install SDK packages ---
+RUN yes | sdkmanager --package_file=android.packages && yes | sdkmanager --licenses
 
-# Ajouter les outils de build (zipalign, apksigner) au PATH
-ENV PATH $PATH:$ANDROID_SDK_ROOT/build-tools/35.0.0
+# --- Ajouter build-tools (zipalign, apksigner) ---
+ENV PATH=$PATH:${ANDROID_SDK_ROOT}/build-tools/35.0.0
 
-# installer adb pour le deboggage
-RUN apt-get update && apt-get install -y android-tools-adb
+EXPOSE 8000 3000

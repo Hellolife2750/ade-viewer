@@ -18,7 +18,7 @@
 - 📆 Navigation jour par jour
 - 🎯 Crée des tâches associées aux cours
 - 📲 Installation facile (fichier APK dispo dans les [releases](#-téléchargement))
-- 🧑‍💻 Code open source, contributions bienvenues !
+- 🧑‍💻 Code open source, contributions bienvenPourues !
 
 ---
 
@@ -117,6 +117,10 @@ docker run --rm -it \
 # OU
 
 ./docker/build_release_cmd.sh <key_pass>
+
+# OU
+
+./docker/build_release_cmd_mem.sh <key_pass> # conserver les artéfacts de build 
 ```
 
 => Pour build une release, tu dois renseigner un keystore.
@@ -141,11 +145,12 @@ Sur PC, ouvrir `chrome://inspect`, sélectionner l'appareil filaire connecté. l
 ## 🧩 TODO & Bugs
 
 - ajouter un widget montrant le prochain cours
+- connexion à Zimbra en IMAP (cordova-plugin-imap)
 
 ## 👤 Auteur
 
 - Auteur : Clément
 - Dernière modification : oct 2025
-- Version : 1.0
+- Version : 1.1.0
 - Technos : CordovaJS + Node
 - Dépôt Git: https://github.com/Hellolife2750/ade-viewer
