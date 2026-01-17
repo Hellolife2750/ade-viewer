@@ -1,3 +1,37 @@
 .clickable:active {
     scale: 0.9;
 }
+
+.classic-btn{
+    background-color: #edd5dbff;
+    color: $first-color;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 2rem;
+    font-weight: bold;
+}
+
+.classic-input {
+  $bg-color: #edd5dbff;
+  $focus-shadow-color: rgb(237, 213, 219);
+
+  background-color: transparent; 
+  color: #333;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 14px;
+  width: 100%;
+  transition: box-shadow 0.2s ease;
+  outline: none;
+
+  &::placeholder {
+    color: #aaa;
+  }
+
+  &:focus {
+    border-color: $first-color;   // Bordure foncée lorsqu'on clique
+    box-shadow: 0 0 0 5px $focus-shadow-color;
+    
+  }
+}

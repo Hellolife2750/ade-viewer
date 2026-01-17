@@ -1,7 +1,9 @@
 import { StorageManager } from './storage_manager.js';
+import { SecureStorageManager } from './secure_storage_manager.js';
 import { RequestsManager } from './requests_manager.js';
 import { ICSParser } from './ics_parser.js';
 import { StyleFormatter } from './style_formatter.js';
+import { FileManager } from './file_manager.js';
 import { WeatherManager } from './weather_manager.js';
 
 
@@ -13,110 +15,14 @@ let ICS_URL;
 let eventsCache = [];
 let blacklistedEventsCache = [];
 
+let LOGIN = "";
+let PASSWORD = "";
+
+// Gestion de la vue "week-view"
+let eventDays = []; // liste des jours (Date sans heure)
+let currentDayIndex = 0;
+
 document.addEventListener('deviceready', onDeviceReady, false);
-
-// enregistrer/charger un fichier ICS dans le stockage local
-class FileManager {
-    static filename = "planning.ics";
-
-    static isNativeFileSystemAvailable() {
-        const isCordova = typeof cordova !== "undefined";
-        const hasFile = isCordova && typeof cordova.file !== "undefined";
-        const hasFS = typeof window.resolveLocalFileSystemURL !== "undefined";
-
-        // 🔑 Vérifier si on n'est PAS en mode "cordova run browser"
-        const isBrowserPlatform = isCordova && cordova.platformId === "browser";
-
-        return hasFile && hasFS && !isBrowserPlatform;
-    }
-
-    static async saveIcsFile(text) {
-        if (!this.isNativeFileSystemAvailable()) {
-            console.warn("💡 Native file system non disponible (browser mode). Sauvegarde ignorée.");
-            return;
-        }
-
-        return new Promise((resolve, reject) => {
-            window.resolveLocalFileSystemURL(cordova.file.dataDirectory, function (dirEntry) {
-                dirEntry.getFile(FileManager.filename, { create: true, exclusive: false }, function (fileEntry) {
-                    fileEntry.createWriter(function (fileWriter) {
-                        fileWriter.onwriteend = function () {
-                            console.log("✅ Fichier ICS enregistré localement !");
-                            resolve(true);
-                        };
-
-                        fileWriter.onerror = function (e) {
-                            console.error("❌ Erreur d'écriture :", e);
-                            reject(e);
-                        };
-
-                        const blob = new Blob([text], { type: "text/calendar" });
-                        fileWriter.write(blob);
-                    }, reject);
-                }, reject);
-            }, reject);
-        });
-    }
-
-    static async loadIcsFile() {
-        return await withLoader(async () => {
-            // Natif uniquement
-            if (this.isNativeFileSystemAvailable()) {
-                try {
-                    const result = await new Promise((resolve, reject) => {
-                        window.resolveLocalFileSystemURL(
-                            cordova.file.dataDirectory + FileManager.filename,
-                            function (fileEntry) {
-                                fileEntry.file(function (file) {
-                                    const reader = new FileReader();
-    
-                                    reader.onloadend = function () {
-                                        console.log("✅ Fichier ICS lu depuis le stockage natif !");
-                                        resolve(this.result);
-                                    };
-    
-                                    reader.onerror = function (e) {
-                                        reject(e);
-                                    };
-    
-                                    reader.readAsText(file);
-                                }, reject);
-                            },
-                            reject
-                        );
-                    });
-    
-                    return result;
-                } catch (err) {
-                    console.warn("⚠️ Fichier ICS introuvable ou erreur lecture :", err);
-                    // => fallback : fetch depuis l’URL
-                }
-            } else {
-                console.warn("💡 Mode browser ou plugin fichier indisponible. Téléchargement direct.");
-            }
-    
-            return await fetchICS();
-        });
-    }
-    
-    static async deleteIcsFile() {
-        if (!this.isNativeFileSystemAvailable()) {
-            console.warn("💡 Pas de système de fichier (browser). Rien à supprimer.");
-            return;
-        }
-
-        return new Promise((resolve, reject) => {
-            window.resolveLocalFileSystemURL(cordova.file.dataDirectory, function (dirEntry) {
-                dirEntry.getFile(FileManager.filename, { create: false }, function (fileEntry) {
-                    fileEntry.remove(function () {
-                        console.log("🗑️ Fichier supprimé !");
-                        resolve();
-                    }, reject);
-                }, reject);
-            }, reject);
-        });
-    }
-}
 
 let activeLoaderCount = 0;
 
@@ -167,6 +73,9 @@ function toggleActiveView(activeViewId, inactiveViewIds) {
         document.getElementById(id).classList.remove("active-view");
     }
 
+    document.getElementById("add-event-btn").style.display =
+    activeViewId.includes("week-view") ? "block" : "none";
+
     // anim remonte haut de page
     window.scrollTo({
         top: 0,
@@ -174,15 +83,16 @@ function toggleActiveView(activeViewId, inactiveViewIds) {
     });
 }
 
-// afficjer le popup de changement du lien
+// afficher le popup de changement du lien
 function showChangeAddressModal(can_close = true) {
     toggleView(["change-address-modal"], [], "flex");
     document.getElementById("close-address-modal-btn").style.display = can_close ? "block" : "none";
 }
 
-
 // binder les boutons / événements au clic
 function initEvents() {
+
+    // afficher vue détaillée devoirs
     document.getElementById("next-events-container").addEventListener("click", () => {
         // toggleView(["week-view"], ["home-view"]);
         toggleActiveView(["week-view"], ["home-view"]);
@@ -198,12 +108,29 @@ function initEvents() {
         toggleActiveView(["home-view"], ["week-view"]);
     });
 
+    document.getElementById("header-logo").addEventListener("click", () => {
+        toggleActiveView(["home-view"], ["week-view"]);
+    });
+
     document.getElementById("change-address-btn").addEventListener("click", function () {
         showChangeAddressModal();
     });
 
-    document.getElementById("close-address-modal-btn").addEventListener("click", function () {
-        toggleView([], ["change-address-modal"]);
+    document.getElementById("add-event-btn").addEventListener("click", function () {
+        toggleView(["add-event-modal"], [], "flex");
+        const day = eventDays[currentDayIndex];
+        document.querySelector("#add-event-modal .day-container").textContent = StyleFormatter.formatJour(day, "long");
+    });
+
+    document.getElementById("config-mail-btn").addEventListener("click", function () {
+        toggleView(["config-mail-modal"], [], "flex");
+        resetConfigMailForm();
+    });
+
+    document.querySelectorAll(".close-modal-btn").forEach((btn)=>{
+        btn.addEventListener("click", function(){
+            toggleView([], [this.closest(".modal").id]);
+        });
     });
 
     document.getElementById("save-address-btn").addEventListener("click", function () {
@@ -221,6 +148,7 @@ function initEvents() {
     // on rafraichit les prochains cours si on revient sur l'app    
     document.addEventListener("resume", function () {
         renderNextCourses();
+        refreshInbox();
     });
 
     // retour arrière natif
@@ -241,6 +169,7 @@ async function refreshCalendar({showLoader = true, failSilently = false} = {}) {
     const task = async () => {
         await fetchICS({failSilently: failSilently});
         await loadICS();
+        await renderDayView(currentDayIndex);
     };
 
     if (showLoader) {
@@ -349,6 +278,7 @@ function onDeviceReady() {
 
     initEvents();
 
+    // afficher prochains cours et devoirs
     StorageManager.getItem("ics_url", async function (value) {
         if (value === null) {
             showChangeAddressModal(false);
@@ -360,6 +290,9 @@ function onDeviceReady() {
             refreshIfOutdated();
         }
     });
+
+    // afficher mails
+    refreshInbox();
 
     // fetchIcsJob();
 }
@@ -467,8 +400,8 @@ async function fetchICS({failSilently = false} = {}) {
 // après chargement ICS → construire la liste des jours et initialiser la vue
 async function loadICS() {
     try {
-        const icsText = await FileManager.loadIcsFile();  // await fetchICS();
-        eventsCache = ICSParser.parseICS(icsText);
+        const icsText = await FileManager.loadIcsFile(withLoader, fetchICS);  // await fetchICS();
+        eventsCache = ICSParser.parseICS(icsText).concat(await getAddedEvents());
         eventsCache.sort((a, b) => a.start - b.start);
 
         buildEventDays();       // <-- ici
@@ -539,7 +472,7 @@ async function renderNextCourses() {
     }
 
     if (upcoming.length === 0) {
-        container.innerHTML += `<p>Aucun cours à venir</p>`;
+        container.innerHTML += `<p class="centered">Aucun cours à venir</p>`;
     }else{
         startCountdown(upcoming[0].start);
     }
@@ -730,11 +663,6 @@ function attachHomeworksListeners(){
     });
 }
 
-
-// Gestion de la vue "week-view"
-let eventDays = []; // liste des jours (Date sans heure)
-let currentDayIndex = 0;
-
 // construit la liste des jours uniques avec événements
 function buildEventDays() {
     const dayMap = new Map();
@@ -815,7 +743,7 @@ async function renderDayView(index) {
                         <p class="professor">${professorName}</p>
                         <div class="badges-container">
                             ${isCM(ev.location) ? '<img src="res/img/icons/amphi.svg" class="event-badge" title="event\'s badge" draggable="false"/>' : ''}
-                            <img src="res/img/icons/eye.svg" class="blacklist-event expandable-icon hidden" title="blacklist event button" draggable="false"/>
+                            ${ev.isPeriodic !== undefined ? '<img src="res/img/icons/trash.svg" class="delete-event expandable-icon hidden" title="delete event button" draggable="false"/>' : '<img src="res/img/icons/eye.svg" class="blacklist-event expandable-icon hidden" title="blacklist event button" draggable="false"/>'}
                             <img src="res/img/icons/pencil.svg" class="add-homework expandable-icon hidden" title="add homework button" draggable="false"/>
                         </div>
                     </div>
@@ -859,6 +787,7 @@ async function renderDayView(index) {
 
     addHomeworkEvents();
     blacklistEventEvents();
+    deleteEventEvents()
 }
 
 // navigation jour précédent / suivant
@@ -922,7 +851,9 @@ async function addHomeworkFromEvent(eventDiv) {
     }
 
     // Chercher s'il y a déjà un devoir pour ce cours et cette date
-    const existingHomework = homeworks.find(hw => hw.course === courseName && hw.date === courseDate);
+    const existingHomework = homeworks.find(
+        hw => hw.course === courseName && hw.date === courseDate
+    );
 
     const defaultText = existingHomework ? existingHomework.homework : "";
     const promptText = existingHomework
@@ -932,7 +863,19 @@ async function addHomeworkFromEvent(eventDiv) {
     const homeworkText = prompt(promptText, defaultText);
     if (homeworkText === null) return; // annulation
 
-    if (homeworkText.trim() === "") return; // texte vide
+    // 🔥 CAS MODIFICATION AVEC TEXTE VIDE => SUPPRESSION
+    if (existingHomework && homeworkText.trim() === "") {
+        homeworks = homeworks.filter(hw => hw !== existingHomework);
+        StorageManager.setItem("homeworks", JSON.stringify(homeworks));
+        showToast("✅ Devoir supprimé");
+        console.log("🗑️ Devoir supprimé :", existingHomework);
+        return;
+    }
+
+    // 🚫 CAS AJOUT AVEC TEXTE VIDE => IGNORER (comportement conservé)
+    if (!existingHomework && homeworkText.trim() === "") {
+        return;
+    }
 
     if (existingHomework) {
         // Modifier l'existant
@@ -1283,4 +1226,423 @@ document.addEventListener('touchend', (e) => {
     startY = 0;
     isScrolling = false;
 }, false);
+
+/* --- Ajouter des événements personnalisés --- */
+
+// Récupérer la liste des événements créés avec objets Date()
+async function getAddedEvents() {
+    let addedEventsTableau = await StorageManager.getItemAsync("added-events");
+    
+    try {
+        addedEventsTableau = addedEventsTableau ? JSON.parse(addedEventsTableau) : [];
+        
+        // Parcourir chaque événement pour convertir start et end en objets Date
+        addedEventsTableau = addedEventsTableau.map(event => {
+            return {
+                ...event,
+                start: new Date(event.start), // Conversion de start en objet Date
+                end: new Date(event.end)      // Conversion de end en objet Date
+            };
+        });
+    } catch (e) {
+        addedEventsTableau = [];
+    }
+    
+    return addedEventsTableau;
+}
+
+document.getElementById('add-event-form').addEventListener('submit', async function(event) {
+    event.preventDefault(); // Empêche le rechargement de la page lors de la soumission du formulaire
+
+    // Récupérer les valeurs des champs du formulaire
+    const title = document.getElementById('event-name').value;
+    const location = document.getElementById('event-location').value;
+    const start = document.getElementById('start-time').value;
+    const end = document.getElementById('end-time').value;
+    const isPeriodic = document.getElementById('recurring').checked;
+
+    const day = eventDays[currentDayIndex];
+
+    // Validation des dates
+    const startDate = new Date(day);
+    const endDate = new Date(day);
+
+    // On récupère heures et minutes depuis les inputs
+    const [startHour, startMin] = start.split(':').map(Number);
+    const [endHour, endMin] = end.split(':').map(Number);
+
+    // On injecte l’heure/minute dans les objets Date
+    startDate.setHours(startHour, startMin, 0, 0);
+    endDate.setHours(endHour, endMin, 0, 0);
+
+    // Vérification que la date de fin est après la date de début
+    if (endDate <= startDate) {
+        alert("La date de fin doit être après la date de début.");
+        return; // Arrête l'exécution si la validation échoue
+    }
+
+    // Vérification que les deux dates sont sur le même jour (en comparant uniquement la date, pas l'heure)
+    const startDay = startDate.toISOString().split('T')[0]; // Extrait la date sans l'heure
+    const endDay = endDate.toISOString().split('T')[0]; // Extrait la date sans l'heure
+
+    if (startDay !== endDay) {
+        alert("Les deux dates doivent être sur le même jour.");
+        return; // Arrête l'exécution si la validation échoue
+    }
+
+    // Créer l'objet événement
+    const newEvent = {
+        title,
+        location,
+        notes: "",
+        start: startDate,
+        end: endDate,
+        isPeriodic
+    };
+
+    // Récupérer la liste des événements stockés
+    let addedEventsTableau = await StorageManager.getItemAsync("added-events");
+    try {
+        addedEventsTableau = addedEventsTableau ? JSON.parse(addedEventsTableau) : [];
+    } catch (e) {
+        addedEventsTableau = [];
+    }
+
+    // Ajouter le nouvel événement à la liste
+    addedEventsTableau.push(newEvent);
+
+    console.log(addedEventsTableau);
+
+    // Sauvegarder la liste mise à jour dans le stockage local
+    await StorageManager.setItem("added-events", JSON.stringify(addedEventsTableau));
+    await loadICS();
+    await renderDayView(currentDayIndex);
+
+    // Réinitialiser le formulaire et fermer la vue
+    toggleView([], ["add-event-modal"]);
+    document.getElementById('add-event-form').reset();
+
+    showToast("✅ Evénement ajouté");
+});
+
+// binder les évents supprimer event
+function deleteEventEvents() {
+    document.querySelectorAll('#week-view .event').forEach(eventDiv => {
+        const delEventBtn = eventDiv.querySelector('.delete-event');
+
+        if (delEventBtn) {
+            delEventBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); // évite les effets de bord si d'autres événements sont liés à l'event
+                deleteEvent(eventDiv).then(() => {
+                    loadICS();
+                });
+            });
+        }
+    });
+}
+
+async function deleteEvent(eventDiv) {
+    const courseName = eventDiv.dataset.courseName;
+    const courseDate = eventDiv.dataset.courseStart;
+    const courseDateObj = new Date(courseDate);
+
+    // Récupérer la liste des événements stockés
+    let addedEventsTableau = await getAddedEvents();
+
+    // Filtrer la liste des événements pour supprimer celui correspondant au nom et à la date
+    const updatedEvents = addedEventsTableau.filter(event => {
+        return !(event.title === courseName && event.start.getTime() === courseDateObj.getTime());
+    });
+
+    // Sauvegarder la liste mise à jour dans le stockage local
+    await StorageManager.setItem("added-events", JSON.stringify(updatedEvents));
+    await loadICS();
+    await renderDayView(currentDayIndex);
+
+    // Afficher un toast pour notifier l'utilisateur
+    showToast("✅ Evénement retiré");
+}
+
+// MAILS //
+
+const ZIMBRA_ADDRESS = (typeof cordova !== "undefined" && cordova.platformId === "browser") ? "http://localhost:3000/zimbra_proxy" : "https://partage.bordeaux-inp.fr/service/soap";  
+  
+// --- Récupérer le token depuis SecureStorage ---
+async function getStoredToken() {
+  return new Promise((resolve, reject) => {
+    SecureStorageManager.getItem("zimbraToken", (value) => {
+      if (value) {
+        try {
+          let cleanToken = JSON.parse(value); 
+          cleanToken = cleanToken.replace(/^\"|\"$/g, '');
+          resolve(cleanToken);
+        } catch (err) {
+          reject(new Error("Erreur de parsing du token"));
+        }
+      } else {
+        reject(new Error("Token non trouvé"));
+      }
+    });
+  });
+}
+
+// --- Stocker un token dans SecureStorage ---
+async function storeToken(token) {
+    SecureStorageManager.setItem("zimbraToken", token);
+}
+
+// --- Vérifier si le token est valide ---
+async function isTokenValid(token) {
+    try {
+        const inboxId = await getInboxId(token);
+        return inboxId ? true : false;
+    } catch (error) {
+        console.error("Token invalide ou requête échouée :", error);
+        return false;
+    }
+}
+
+  // --- Récupération du token Zimbra ---
+  async function getZimbraToken() {
+    const soapBody = `<?xml version="1.0" encoding="UTF-8"?>
+    <soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope">
+      <soap:Header/>
+      <soap:Body>
+        <AuthRequest xmlns="urn:zimbraAccount">
+          <account by="name">${LOGIN}</account>
+          <password>${PASSWORD}</password>
+        </AuthRequest>
+      </soap:Body>
+    </soap:Envelope>`;
+
+    cordova.plugin.http.clearCookies(); // supprimer les moyens d'auth encore en cache
+
+    const response = await RequestsManager.httpPost(ZIMBRA_ADDRESS, soapBody, {
+        "Content-Type": "text/xml; charset=utf-8",
+    });
+
+    const text = await response.text();
+    const match = text.match(/<authToken>([^<]+)<\/authToken>/);
+    if (!match) throw new Error("Impossible d'extraire le token : " + text);
+    return match[1];
+  }
+
+  // --- Récupérer l'ID de la boîte Inbox ---
+  async function getInboxId(token) {
+    const soapFolder = `<?xml version="1.0" encoding="UTF-8"?>
+    <soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope">
+      <soap:Header>
+        <context xmlns="urn:zimbra">
+          <authToken>${token}</authToken>
+        </context>
+      </soap:Header>
+      <soap:Body>
+        <GetFolderRequest xmlns="urn:zimbraMail">
+          <folder l="1"/>
+        </GetFolderRequest>
+      </soap:Body>
+    </soap:Envelope>`;
+
+    const response = await RequestsManager.httpPost(ZIMBRA_ADDRESS, soapFolder, {
+        "Content-Type": "text/xml; charset=utf-8",
+    });
+
+    const xml = await response.text();
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xml, "text/xml");
+    const ns = "urn:zimbraMail";
+
+    // Chercher le folder nommé "Inbox"
+    const folders = xmlDoc.getElementsByTagNameNS(ns, "folder");
+    for (const folder of folders) {
+      if (folder.getAttribute("name") === "Inbox") {
+        return folder.getAttribute("id");
+      }
+    }
+    throw new Error("Impossible de trouver Inbox : " + xml);
+  }
+
+  // --- Récupérer les mails non lus dans Inbox ---
+  async function getUnreadEmailsInInbox(token, inboxId) {
+    const soapSearch = `<?xml version="1.0" encoding="UTF-8"?>
+    <soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope">
+      <soap:Header>
+        <context xmlns="urn:zimbra">
+          <authToken>${token}</authToken>
+        </context>
+      </soap:Header>
+      <soap:Body>
+        <SearchRequest xmlns="urn:zimbraMail" types="message" sortBy="dateDesc">
+          <query>is:unread</query>
+          <l>${inboxId}</l>
+          <limit>50</limit>
+        </SearchRequest>
+      </soap:Body>
+    </soap:Envelope>`;
+
+    const response = await RequestsManager.httpPost(ZIMBRA_ADDRESS, soapSearch, {
+        "Content-Type": "text/xml; charset=utf-8",
+    });
+
+    const xml = await response.text();
+
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xml, "text/xml");
+    const ns = "urn:zimbraMail";
+
+    const messages = Array.from(xmlDoc.getElementsByTagNameNS(ns, "m")).map(m => {
+      const su = m.getElementsByTagNameNS(ns, "su")[0]?.textContent || "";
+      const e = m.getElementsByTagNameNS(ns, "e")[0];
+      const from = e?.getAttribute("p") || "";
+      return { id: m.getAttribute("id"), subject: su, from };
+    });
+
+    return messages;
+  }
+
+async function refreshInbox(){
+  // --- Execution ---
+  try {
+    // Étape 1 : Essayer de récupérer les login et password depuis SecureStorage
+    let login = null;
+    let password = null;
+
+    try {
+      login = await new Promise((resolve, reject) => {
+        SecureStorageManager.getItem("zimbraLogin", (value) => {
+          if (value) resolve(value);
+          else reject("Login non trouvé");
+        });
+      });
+      document.getElementById("zimbra-login").value = login;
+    } catch (error) {
+      console.log("Aucun login trouvé dans SecureStorage");
+    }
+
+    try {
+      password = await new Promise((resolve, reject) => {
+        SecureStorageManager.getItem("zimbraPassword", (value) => {
+          if (value) resolve(value);
+          else reject("Password non trouvé");
+        });
+      });
+      document.getElementById("zimbra-password").value = password;
+    } catch (error) {
+      console.log("Aucun password trouvé dans SecureStorage");
+    }
+
+    // Si les deux éléments sont trouvés, assigner les valeurs à LOGIN et PASSWORD
+    if (login && password) {
+      LOGIN = login;
+      PASSWORD = password;
+    } else {
+      console.log("Login ou Password manquant, arrêt du processus.");
+      //print_inbox_error("Erreur d'authentification");
+      return; // Ne rien faire si l'un des deux est manquant
+    }
+
+    // Étape 2 : Essayer de récupérer un token existant depuis SecureStorage
+    let token = null;
+    try {
+      token = await getStoredToken();
+    } catch (error) {
+      console.log("Aucun token trouvé dans SecureStorage");
+    }
+
+    console.log(token)
+
+    // Étape 3 : Vérifier la validité du token ou en obtenir un nouveau si nécessaire
+    if (!token || !(await isTokenValid(token))) {
+      console.log("Token invalide ou expiré. Récupération d'un nouveau token...");
+      token = await getZimbraToken();
+      await storeToken(token); // Stocker le nouveau token dans SecureStorage
+    }
+
+    if (!token){
+        print_inbox_error("Erreur d'authentification");
+        return;
+    }
+
+    // Étape 4 : Utiliser le token pour récupérer les mails non lus
+    const inboxId = await getInboxId(token);
+    const unreadMails = await getUnreadEmailsInInbox(token, inboxId);
+    console.log("📧 Mails non lus dans Inbox :", unreadMails);
+
+    // Affichage dans l'interface
+    const container = document.querySelector("#unread-inbox-container");
+    const countDiv = document.querySelector("#unread-mails-count");
+
+    if (container) {
+        container.innerHTML = ""; // vider avant
+
+        if (countDiv) {
+            countDiv.textContent = unreadMails.length;
+        }
+
+        if (unreadMails.length === 0) {
+            container.insertAdjacentHTML(
+                "beforeend",
+                `<p class="centered">Aucun mail pour l'instant.</p>`
+            );
+        } else {
+            unreadMails.forEach(mail => {
+                container.insertAdjacentHTML(
+                    "beforeend",
+                    `<p class="one-mail"><span class="bold">${mail.subject}</span> - ${mail.from}</p>`
+                );
+            });
+        }
+    }
+
+  } catch (err) {
+    console.error("Erreur générale :", err);
+    print_inbox_error("Impossible de charger les mails");
+  }
+
+}
+
+
+document.getElementById('config-mail-form').addEventListener('submit', async function(event) {
+    event.preventDefault(); // Empêche le rechargement de la page lors de la soumission du formulaire
+
+    // Récupérer les valeurs des champs du formulaire
+    const login = document.getElementById('zimbra-login').value;
+    const password = document.getElementById('zimbra-password').value;
+
+    if (!login || !password) {
+        alert("Veuillez renseigner une adresse mail et un mot de passe valides.");
+        return;
+    }
+
+    // Sauvegarder la liste mise à jour dans le stockage local
+    await SecureStorageManager.setItem("zimbraLogin", login);
+    await SecureStorageManager.setItem("zimbraPassword", password);
+    LOGIN = login;
+    PASSWORD = password;
+    cordova.plugin.http.clearCookies(); // supprimer les moyens d'auth encore en cache
+
+    // Réinitialiser le formulaire et fermer la vue
+    toggleView([], ["config-mail-modal"]);
+    resetConfigMailForm();
+
+    refreshInbox();
+    showToast("✅ Paramètres enregistrés.");
+});
+
+/** Reset login et password affichage */
+async function resetConfigMailForm() {
+    document.getElementById('config-mail-form').reset();
+    document.getElementById("zimbra-login").value = LOGIN;
+    document.getElementById("zimbra-password").value = PASSWORD;
+}
+
+// affiche message erreur dans section "inbox"
+function print_inbox_error(message){
+    document.getElementById("unread-inbox-container").innerHTML = `<div class="error-message">⚠️ ${message}</div>`;
+}
+
+// const getValue = key => new Promise(resolve =>
+//     SecureStorageManager.getItem(key, value => resolve(value || ""))
+// );
+//await getValue("zimbraLogin");
 

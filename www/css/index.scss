@@ -10,6 +10,7 @@
 @import "./components/footer";
 @import "./components/loader";
 @import "./components/datepicker";
+@import "./components/modal";
 
 
 body {
@@ -56,14 +57,16 @@ body {
                         border-radius: 10px;
 
                         #next-events,
-                        #next-homeworks {
+                        #next-homeworks,
+                        #unread-inbox {
                             box-shadow: none;
                         }
                     }  
                 }
 
                 #next-events,
-                #next-homeworks {
+                #next-homeworks,
+                #unread-inbox {
                     @include flex(column);
                     margin: 0 auto;
                     width: 97%;
@@ -72,6 +75,10 @@ body {
                 }
 
                 #next-events {
+                    .centered{
+                        text-align: center;
+                    }
+
                     .next-events-title {
                         text-align: center;
                         color: map-get($colors, "teal-dark");
@@ -94,7 +101,7 @@ body {
 
                     .next-homeworks-title {
                         text-align: center;
-                        color: map-get($colors, "purple-dark");;
+                        color: map-get($colors, "purple-dark");
                         margin-bottom: .5rem;
                         font-weight: 700;
                     }
@@ -172,6 +179,76 @@ body {
                         }
                     }
 
+                }
+
+                #unread-inbox{
+
+                    .title-container{
+                        margin-bottom: 1rem;
+                        @include flex($justify: center, $align: center);
+                        gap: .7rem;
+
+                        .unread-inbox-title {
+                            color: map-get($colors, "teal-dark");
+                            font-weight: 700;
+                            text-decoration: none;
+                        }
+
+                        #unread-mails-count{
+                            @include flex($justify: center, $align : center);
+                            color: white;
+                            background-color: red;
+                            font-weight: bold;
+                            border-radius: 100%;
+                            width: 1.3rem;
+                            height: 1.3rem;
+                        }
+                    }
+                    
+
+                    margin-top: 2rem;
+
+                    #unread-inbox-container {
+                        .error-message{
+                            margin: 0 auto;
+                            color: $first-color;
+                            border: 1px solid $first-color;
+                            border-radius: 0.5rem;
+                            padding: 1rem;
+                            background-color: #edd5dbff;
+                            text-align: center;
+                        }
+
+                        .centered{
+                            text-align: center;
+                        }
+
+                        .one-mail {
+                            padding: 0.8rem 1rem;
+                            margin: 0.5rem 0;
+                            background: white;
+                            border-radius: 6px;
+                            border: 1px solid rgba(255,255,255,0.1);
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                            transition: all .3s ease-in-out;
+
+                            &:active{
+                                background-color: map-get($colors, "gray-selection");
+                            }
+
+                            .bold {
+                                font-weight: 600;
+                                display: block;
+                                margin-bottom: 0.2rem;
+                            }
+                        }
+                    }
+
+                    #config-mail-btn{
+                        background-color: #edd5dbff;
+                        margin-top: 1rem;
+                        align-self: center;
+                    }
                 }
             }
 
@@ -299,7 +376,7 @@ body {
                         @include flex;
                         gap: 5px;
 
-                        .event-badge,.add-homework, .blacklist-event {
+                        .event-badge,.add-homework, .blacklist-event, .delete-event {
                             height: 1.5rem;
                         }
 
@@ -323,101 +400,101 @@ body {
         }
 
         #change-address-modal {
-            width: 100vw;
-            height: 100vh;
-            background-color: rgba(0, 0, 0, 0.7);
-            position: fixed;
-            top: 0;
-            left: 0;
-            @include flex($justify: center, $align: center);
-            display: none;
-            z-index: z(change-address-modal);
 
-            .modal-content {
-                width: 90%;
-                background-color: white;
-                padding: 2rem;
-                border-radius: 8px;
-                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-                @include flex(column, space-between, center);
-                position: relative;
+            .mediums-container {
+                margin: 2rem auto;
+                @include flex(column, $align: center);
+                width: 100%;
 
-                #close-address-modal-btn {
-                    height: 1.7rem;
-                    position: absolute;
-                    top: 0;
-                    right: 0;
-                    transform: translate(45%, -45%);
-                }
-
-                h2 {
-                    text-align: center;
-                    font-size: 1.2rem;
+                #open-scanner-btn {
+                    border: 2px solid $first-color;
+                    background-color: #fff;
+                    padding: 10px 20px;
+                    border-radius: 2rem;
                     font-weight: bold;
                     color: $first-color;
-                }
-
-                .seperator {
-                    height: 4px;
-                    width: 50%;
-                    background-color: $first-color;
-                    margin: 1rem 0;
-                    border-radius: 2rem;
-                }
-
-                .mediums-container {
-                    margin: 2rem auto;
-                    @include flex(column, $align: center);
                     width: 100%;
 
-                    #open-scanner-btn {
-                        border: 2px solid $first-color;
-                        background-color: #fff;
-                        padding: 10px 20px;
-                        border-radius: 2rem;
-                        font-weight: bold;
-                        color: $first-color;
-                        width: 100%;
-
-                        &:focus {
-                            background-color: $first-color;
-                            color: #fff;
-                        }
-                    }
-
-                    .or-separator {
-                        margin: 1rem 0;
-                        font-weight: bold;
-                    }
-
-                    #address-input {
-                        padding: 10px;
-                        border: 2px solid $first-color;
-                        border-radius: 2rem;
-                        text-align: center;
-                        outline: none;
-                        width: 100%;
+                    &:focus {
+                        background-color: $first-color;
+                        color: #fff;
                     }
                 }
 
-                #save-address-btn {
-                    background-color: #edd5dbff;
-                    color: $first-color;
-                    padding: 10px 20px;
-                    border: none;
-                    padding: 10px 20px;
-                    border-radius: 2rem;
+                .or-separator {
+                    margin: 1rem 0;
                     font-weight: bold;
                 }
+
+                #address-input {
+                    padding: 10px;
+                    border: 2px solid $first-color;
+                    border-radius: 2rem;
+                    text-align: center;
+                    outline: none;
+                    width: 100%;
+                }
+            }
+
+            #save-address-btn {
+                background-color: #edd5dbff;
+            }
+            
+        }
+
+        #add-event-modal{
+
+            #add-event-form{
+                margin-top: 1.5rem;
+                @include flex(column, $align: flex-start);
+                width: 100%;
+
+                .day-container{
+                    margin: 0 auto;
+                    font-weight: bold;
+                    margin-bottom: 1.3rem;
+                }
+
+                .input-container{
+                    @include flex($direction: column, $align: flex-start, $justify: flex-start);
+                    margin-bottom: 1.3rem;
+                    gap: 0.5rem;
+                    width: 100%;
+
+                    &.checkbox-container{
+                        @include flex($direction: row-reverse, $justify: flex-end, $align: center);
+                        gap: 0.5rem;
+                    }
+                }
+            }
+
+            #save-add-event-btn{
+                background-color: #edd5dbff;
+                margin: 0 auto;
             }
         }
 
         #debug-view {
             position: absolute;
-            top: 0;
+            top: 10vh;
             left: 0;
-            width: 70vw;
-            height: 20vh;
+            width: 100vw;
+            height: 50vh;
+            resize: both;
         }
+
+        #config-mail-form{
+            @include flex($direction: column, $align: center, $justify: center);
+            
+            .input-container{
+                margin-bottom: 1rem;
+            }
+
+            #save-config-mail-btn{
+                align-self: center;
+                background-color: #edd5dbff;
+            }
+        }
+        
     }
 }

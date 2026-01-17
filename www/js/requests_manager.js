@@ -51,4 +51,53 @@ export class RequestsManager {
             }
         });
     }
+
+    static httpPost(url, body, headers = {}, timeoutMs = 10000) {
+    return new Promise((resolve, reject) => {
+        let settled = false;
+        let timer = null;
+
+        const finishResolve = (val) => {
+            if (settled) return;
+            settled = true;
+            if (timer) clearTimeout(timer);
+            resolve({
+                status: val.status,
+                ok: val.status >= 200 && val.status < 300,
+                headers: val.headers,
+                url: val.url,
+                text: async () => val.data,
+                json: async () => JSON.parse(val.data)
+            });
+        };
+
+        const finishReject = (err) => {
+            if (settled) return;
+            settled = true;
+            if (timer) clearTimeout(timer);
+            reject(err);
+        };
+
+        timer = setTimeout(() => {
+            finishReject(new Error(`Request timed out after ${timeoutMs} ms`));
+        }, timeoutMs);
+
+        try {
+            cordova.plugin.http.sendRequest(
+                url,
+                {
+                    method: "post",
+                    data: body,
+                    headers: headers,   // <<< personnalisé ici
+                    serializer: "utf8"
+                },
+                (response) => finishResolve(response),
+                (error) => finishReject(error)
+            );
+        } catch (err) {
+            finishReject(err);
+        }
+    });
+}
+
 }

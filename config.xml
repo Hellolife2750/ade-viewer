@@ -11,6 +11,10 @@
     <access origin="https://adeapp.bordeaux-inp.fr" />
     <allow-navigation href="https://adeapp.bordeaux-inp.fr/*" />
     <allow-intent href="https://adeapp.bordeaux-inp.fr/*" />
+    <access origin="https://partage.bordeaux-inp.fr" />
+    <access origin="https://sp.partage.renater.fr" />
+    <allow-navigation href="https://partage.bordeaux-inp.fr/*" />
+    <allow-intent href="https://partage.bordeaux-inp.fr/*" />
     <preference name="AndroidPersistentFileLocation" value="Compatibility" />
     <platform name="android">
         <preference name="SplashScreen" value="screen" />

@@ -1,0 +1,49 @@
+.modal {
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.7);
+    position: fixed;
+    top: 0;
+    left: 0;
+    @include flex($justify: center, $align: center);
+    display: none;
+    z-index: z(generic-modal);
+
+    .modal-content {
+        width: 90%;
+        background-color: white;
+        padding: 2rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        @include flex(column, space-between, center);
+        position: relative;
+        padding-top: 3rem;
+
+        .close-modal-btn {
+            position: absolute;
+            top: 7px;
+            right: 10px;
+            font-size: 27px;
+            font-weight: bold;
+            color: #aaa;
+
+            &:active{
+                color: black;
+            }
+        }
+
+        .modal-title {
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: $first-color;
+        }
+
+        .modal-seperator {
+            height: 4px;
+            width: 50%;
+            background-color: $first-color;
+            margin: 1rem 0;
+        }
+    }
+}

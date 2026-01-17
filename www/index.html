@@ -9,7 +9,7 @@
                style-src 'self' 'unsafe-inline';
                media-src *;
                img-src 'self' data: content:;
-               connect-src 'self' https://adeapp.bordeaux-inp.fr http://localhost:3000 https://api.openweathermap.org;">
+               connect-src 'self' https://adeapp.bordeaux-inp.fr http://localhost:3000 https://api.openweathermap.org https://partage.bordeaux-inp.fr https://sp.partage.renater.fr/bordeaux_inp;">
 
     <title>ADE Viewer</title>
     <link rel="stylesheet" href="css/index.css" />
@@ -18,7 +18,7 @@
 <body>
     <div id="app">
         <header>
-            <img class="header-logo" src="res/img/icon.svg" alt="ADE logo" draggable="false">
+            <img id="header-logo" class="header-logo" src="res/img/icon.svg" class="clickable" alt="ADE logo" draggable="false">
             <p id="next-course-timer"></p>
             <div class="menu-buttons">
                 <img id="toggle-home-view" class="clickable" src="res/img/icons/home.svg" alt="home icon" draggable="false">
@@ -33,7 +33,7 @@
                         <p class="next-events-title">3 prochains cours</p>
 
                         <div id="day-events-container">
-                            <p style="text-align: center;">Chargement...</p>
+                            <p class="centered">Chargement...</p>
                         </div>
                     </div>  
                 </div>
@@ -43,6 +43,18 @@
 
                     <div id="homeworks-container">
                     </div>
+                </div>
+
+                <div id="unread-inbox">
+                    <div class="title-container">
+                        <div id="unread-mails-count">0</div>
+                        <a class="unread-inbox-title" href="https://partage.bordeaux-inp.fr/">Mails non lus</a>
+                    </div>
+
+                    <div id="unread-inbox-container">
+                    </div>
+
+                    <button class="classic-btn" id="config-mail-btn">Configurer l'aperçu</button>
                 </div>
             </div>
 
@@ -86,16 +98,17 @@
                 <img class="action-btn clickable" id="refresh-cal-btn" src="res/img/icons/reload.svg" alt="refresh planning icon" draggable="false">
             </div>
             <div class="right">
+                <img class="action-btn clickable" id="add-event-btn" src="res/img/icons/plus.svg" alt="plus icon" draggable="false">
                 <img class="action-btn clickable" id="change-address-btn" src="res/img/icons/qrcode.svg" alt="qrcode icon" draggable="false">
             </div>
         </footer>
 
-        <div id="change-address-modal">
+        <div id="change-address-modal" class="modal">
             <div class="modal-content">
-                <img id="close-address-modal-btn" class="clickable" src="res/img/icons/cross.svg" alt="close icon" draggable="false">
+                <span id="close-address-modal-btn" class="close-modal-btn clickable">&times;</span>
 
-                <h2>Charger un emploi du temps</h2>
-                <div class="seperator"></div>
+                <h2 class="modal-title">Charger un emploi du temps</h2>
+                <div class="modal-seperator"></div>
 
                 <div class="mediums-container">
                     <button id="open-scanner-btn" class="clickable">Scanner un QR code</button>
@@ -103,7 +116,77 @@
                     <input type="text" id="address-input" placeholder="Entrez l'adresse de votre emploi du temps">
                 </div>
 
-                <button id="save-address-btn" class="clickable">Sauvegarder</button>
+                <button id="save-address-btn" class="clickable classic-btn">Sauvegarder</button>
+            </div>
+        </div>
+
+        <div id="add-event-modal" class="modal">
+            <div class="modal-content">
+                <span id="close-add-event-modal-btn" class="close-modal-btn clickable">&times;</span>
+
+                <h2 class="modal-title">Ajouter un événement</h2>
+                <div class="modal-seperator"></div>
+
+                <form id="add-event-form">
+
+                    <div class="input-container">
+                        <label for="event-name">Nom de l'événement</label>
+                        <input type="text" id="event-name" class="classic-input" name="event-name" required>
+                    </div>
+
+                    <div class="input-container">
+                        <label for="event-location">Lieu</label>
+                        <input type="text" id="event-location" class="classic-input" name="event-location">
+                    </div>
+
+                    <p class="day-container">placeholder</p>
+
+                    <div class="input-container">
+                        <label for="start-time">De</label>
+                        <input type="time" id="start-time" class="classic-input" name="start-time" required>
+                    </div>
+
+                    <div class="input-container">
+                        <label for="end-time">À</label>
+                        <input type="time" id="end-time" class="classic-input" name="end-time" required>
+                    </div>
+
+                    <div class="input-container checkbox-container" style="display: none;">
+                        <label for="recurring">Répéter chaque semaine</label>
+                        <input type="checkbox" id="recurring" class="classic-checkbox" name="recurring">
+                    </div>
+
+                    <button type="submit" id="save-add-event-btn" class="clickable classic-btn">Créer l'événement</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="config-mail-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal-btn clickable">&times;</span>
+
+                <h2 class="modal-title">Configurer une boîte mail</h2>
+                <div class="modal-seperator"></div>
+
+                <form id="config-mail-form">
+
+                    <!-- <div class="input-container">
+                        <label for="event-name">Adresse API Zimbra</label>
+                        <input type="text" id="zimbra-endpoint" class="classic-input" name="zimbra-endpoint" required>
+                    </div> -->
+
+                    <div class="input-container">
+                        <label for="event-location">Adresse mail</label>
+                        <input type="text" id="zimbra-login" class="classic-input" name="zimbra-login" placeholder="prenom.nom@bordeaux-inp.fr" required>
+                    </div>
+
+                    <div class="input-container">
+                        <label for="event-location">Mot de passe</label>
+                        <input type="password" id="zimbra-password" class="classic-input" name="zimbra-password" required>
+                    </div>
+
+                    <button type="submit" id="save-config-mail-btn" class="clickable classic-btn">Enregistrer</button>
+                </form>
             </div>
         </div>
 

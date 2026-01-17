@@ -75,6 +75,11 @@ export class StyleFormatter {
 
     // Extrait le nom du professeur à partir des notes (2ème ligne en partant de la fin)
     static extractProfessor(notes) {
+        // added events
+        if (!notes){
+            return "";
+        }
+
         // Diviser la chaîne en lignes, en utilisant le séparateur \n
         const lines = notes.split("\n");
 
